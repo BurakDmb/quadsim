@@ -1,0 +1,11 @@
+2014-01-17
+Updated build system to allow MinGW builds for windows.
+
+2011-05-26
+First public release. Contains following package versions:
+	* MC19 1989-03-09
+	* MA27 2003-03-19
+	* MA28 1993-06-21
+
+2011-03-15 Jonathan Hogg
+Create autotools project to make coinhsl easier to build

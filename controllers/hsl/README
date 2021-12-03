@@ -1,0 +1,40 @@
+Legal Notice
+============
+ALL USAGE OF HSL IS SUBJECT TO LICENCE. PLEASE REFER TO THE FILE 'LICENCE'
+DISTRIBUTED WITH THIS SOFTWARE. THIS LICENCE APPLIES TO ALL FILES UNLESS
+OTHERWISE INDICATED. IF YOU OBTAINED A COPY OF THIS SOFTWARE WITHOUT THIS FILE,
+PLEASE CONTACT HSL@STFC.AC.UK TO OBTAIN ONE.
+
+In particular:
+1) You are obliged to cite HSL in any publication or report as:
+   "HSL, a collection of Fortran codes for large-scale scientific computation.
+    See http://www.hsl.rl.ac.uk/"
+2) You may not make available to others the software in any form, either as
+   source or as a precompiled object.
+
+Introduction
+============
+Thanks for downloading HSL software. You can find out more information about
+HSL by visiting our website: http://www.hsl.rl.ac.uk/
+
+This package is intended to be used exclusively with IPOPT. To obtain the full
+version of the packages please download them from the HSL web address above,
+from which source code is also available.
+
+Experimental!
+=============
+This binary distribution is still experimental. We would like to hear if you
+have any problems so they can be rectified. Please send any feedback to
+hsl@stfc.ac.uk
+
+Installation 
+============
+
+Option 1: [To ensure Ipopt can find at compile time; or to run]
+Copy the contents of lib/ into /usr/local/lib.
+Copy the contents of include/ into /usr/local/include.
+Run ldconfig.
+
+Option 2: [To run with precompiled Ipopt]
+Copy lib/libcoinhsl.so into your Ipopt directory and
+ensure it is in your LD_LIBRARY_PATH.

@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: HSL Archive
+Description: HSL Archive Mathematical Software Library compiled for COIN-OR
+Version: 2014.01.17-archive
+Libs: -L${libdir} -lcoinhsl
+Cflags: -I${includedir}
+Requires:
