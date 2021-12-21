@@ -31,6 +31,27 @@ B = np.array([[0,       0,          0],
               [0,       0,          0],
               [0,       0,          1.0/Izz]])
 
+C = np.array([[1, 0, 0, 0, 0, 0],
+              [0, 1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0, 0],
+              [0, 0, 0, 1, 0, 0],
+              [0, 0, 0, 0, 1, 0],
+              [0, 0, 0, 0, 0, 1]])
+
+G = np.array([[1, 0, 0, 0, 0, 0],
+              [0, 1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0, 0],
+              [0, 0, 0, 1, 0, 0],
+              [0, 0, 0, 0, 1, 0],
+              [0, 0, 0, 0, 0, 1]])
+
+H = np.array([[1, 0, 0, 0, 0, 0],
+              [0, 1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0, 0],
+              [0, 0, 0, 1, 0, 0],
+              [0, 0, 0, 0, 1, 0],
+              [0, 0, 0, 0, 0, 1]])
+
 Q_coefficients = np.array([200, 1, 200, 1, 200, 1])
 R_coefficients = np.array([10, 10, 10])
 
@@ -48,7 +69,7 @@ soft_psidot = np.radians(2000)
 # y will be in shape (n,k)
 # output will be in shape (n,k)
 # each column corresponds to a single column in y.
-def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0):
+def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
     # def linear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
@@ -60,7 +81,7 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0):
         U = np.array([u, ]*x_shape).transpose()
     else:
         U = np.array(u)
-    dxdt = np.dot(A, x) + np.dot(B, U)
+    dxdt = np.dot(A, x) + np.dot(B, U) + np.dot(G, wk)
     return dxdt
 
 
@@ -70,7 +91,7 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0):
 # each column corresponds to a single column in y.
 # for quadcopter dynamics, n=6, which are
 # phidot, phidotdot, thetadot, thetadotdot, psidot, psidotdot.
-def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0):
+def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
     # def nonlinear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
@@ -92,7 +113,7 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0):
                         np.multiply(phidot, thetadot)) + U[2, :])/Izz
 
     dxdt = np.array([x[1, :], phidotdot, x[3, :],
-                    thetadotdot, x[5, :], psidotdot])
+                    thetadotdot, x[5, :], psidotdot]) + np.dot(G, wk)
     return dxdt
 
 
@@ -138,6 +159,9 @@ class DeterministicQuad(gym.Env):
         self.w_max = w_max
         self.A = A
         self.B = B
+        self.C = C
+        self.G = G
+        self.H = H
 
         self.solver_func = solver_func
 
@@ -470,8 +494,12 @@ class StochasticQuad(DeterministicQuad):
         time_range = (self.current_time,
                       self.current_time + self.control_timestep)
 
-        action_clipped = np.maximum(np.minimum(action+wk, self.u_max),
+        # TODO remove wk in here and add it in xk+1 function.
+        # action_clipped = np.maximum(np.minimum(action+wk, self.u_max),
+        #                             -self.u_max)
+        action_clipped = np.maximum(np.minimum(action, self.u_max),
                                     -self.u_max)
+
         if self.set_custom_u_limit:
             action_clipped = np.maximum(np.minimum(action, self.custom_u_high),
                                         -self.custom_u_high)
@@ -483,7 +511,7 @@ class StochasticQuad(DeterministicQuad):
         # to have minimum 250Hz freq.
         sol = solve_ivp(self.solver_func, time_range,
                         self.dynamics_state,
-                        args=(u1, u2, u3),
+                        args=(u1, u2, u3, wk),
                         # args=(w1s, w2s, w3s, w4s),
                         vectorized=True,
                         max_step=self.simulation_timestep)
@@ -494,7 +522,9 @@ class StochasticQuad(DeterministicQuad):
                                  - np.pi)
 
         # Adding the measurement noise to the observation
-        next_obs = next_state + vk
+        next_obs = next_state + np.dot(H,vk)
+        # TODO add H
+
         # Mapping the observation values to -pi, pi
         next_obs[[0, 2, 4]] = (((next_obs[[0, 2, 4]] + np.pi) % (2*np.pi))
                                - np.pi)
