@@ -69,7 +69,7 @@ soft_psidot = np.radians(2000)
 # y will be in shape (n,k)
 # output will be in shape (n,k)
 # each column corresponds to a single column in y.
-def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
+def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
     # def linear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
@@ -81,7 +81,9 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
         U = np.array([u, ]*x_shape).transpose()
     else:
         U = np.array(u)
-    dxdt = np.dot(A, x) + np.dot(B, U) + np.dot(G, wk)
+    dxdt = np.dot(A, x) + np.dot(B, U) 
+    if wk is not None:
+        dxdt += np.dot(G, wk)
     return dxdt
 
 
@@ -91,7 +93,7 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
 # each column corresponds to a single column in y.
 # for quadcopter dynamics, n=6, which are
 # phidot, phidotdot, thetadot, thetadotdot, psidot, psidotdot.
-def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
+def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
     # def nonlinear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
@@ -113,7 +115,10 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=0):
                         np.multiply(phidot, thetadot)) + U[2, :])/Izz
 
     dxdt = np.array([x[1, :], phidotdot, x[3, :],
-                    thetadotdot, x[5, :], psidotdot]) + np.dot(G, wk)
+                    thetadotdot, x[5, :], psidotdot])
+
+    if wk is not None:
+        dxdt += np.dot(G, wk)
     return dxdt
 
 
@@ -473,21 +478,23 @@ class StochasticQuad(DeterministicQuad):
         self.solver_func = solver_func
         self.rnd_noise_wk = np.random.default_rng(random_noise_seed_wk)
         self.rnd_noise_vk = np.random.default_rng(random_noise_seed_vk)
+        self.noise_w_mean = noise_w_mean
+        self.noise_w_variance = noise_w_variance
+        self.noise_v_mean = noise_v_mean
+        self.noise_v_variance = noise_v_variance
+
         if self.keep_history:
             self.history.env_name = self.__class__.__name__
-            self.noise_w_mean = noise_w_mean
-            self.noise_w_variance = noise_w_variance
-            self.noise_v_mean = noise_v_mean
-            self.noise_v_variance = noise_v_variance
+
             self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
 
     def step(self, action):
 
         # Randomly generating process and measurement noise
         wk = self.rnd_noise_wk.normal(self.noise_w_mean, self.noise_w_variance,
-                                      self.action_len)
+                                      self.dynamics_len).reshape(-1,1)
         vk = self.rnd_noise_vk.normal(self.noise_v_mean, self.noise_v_variance,
-                                      self.dynamics_len)
+                                      self.dynamics_len).reshape(-1,1)
 
         # Execute one time step within the environment
         self.current_time = self.current_timestep * self.control_timestep
@@ -522,7 +529,8 @@ class StochasticQuad(DeterministicQuad):
                                  - np.pi)
 
         # Adding the measurement noise to the observation
-        next_obs = next_state + np.dot(H,vk)
+        # Flatten is used to convert 6,1 matrix to 6, vector.
+        next_obs = next_state + np.dot(H,vk).flatten()
         # TODO add H
 
         # Mapping the observation values to -pi, pi

@@ -2,6 +2,8 @@ import numpy as np
 import sys
 import time
 
+from envs.quad import StochasticQuad
+
 n_horizon = 20
 control_freq = 50
 simulation_freq = 250
@@ -57,6 +59,16 @@ def test_lqr(plot=False, save_plot=False, loadmodel=False):
                             keep_history=False)
     print("*** Function: ", sys._getframe().f_code.co_name, "***")
     lqr = LQR(env)
+    test_controller(lqr, t_end, plot=plot, save_plot=save_plot)
+
+def test_lqg(plot=False, save_plot=False, loadmodel=False):
+    from controllers.lqg import LQG
+    from envs.quad import DeterministicQuad, linear_quad_dynamics
+    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
+                            simulation_freq=250, control_freq=50,
+                            keep_history=False)
+    print("*** Function: ", sys._getframe().f_code.co_name, "***")
+    lqr = LQG(env)
     test_controller(lqr, t_end, plot=plot, save_plot=save_plot)
 
 
@@ -173,7 +185,16 @@ def compare_all(compare_rl_models=False,
 
     lqr = LQR(env)
 
-    # Controller 3 and 4
+    # Controller 3
+    from controllers.lqg import LQG
+    from envs.quad import StochasticQuad, linear_quad_dynamics
+    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
+                            simulation_freq=250, control_freq=50,
+                            keep_history=False)
+
+    lqg = LQG(env)
+
+    # Controller 4 and 5
     from controllers.nonlinear_mpc import Nonlinear_MPC
     from controllers.linear_mpc import Linear_MPC
 
@@ -190,28 +211,28 @@ def compare_all(compare_rl_models=False,
 
     ddpg_model = ppo_model = sac_model = td3_model = a2c_model = None
     if compare_rl_models:
-        # Controller 5
+        # Controller 6
         from stable_baselines3 import DDPG
         ddpg_model = DDPG.load(
             "results/2M_training/saves/ddpg-quad/ddpg-quad_end",
             device="cuda:0")
-        # Controller 6
+        # Controller 7
         from stable_baselines3 import PPO
         ppo_model = PPO.load(
             "results/2M_training/saves/ppo-quad/ppo-quad_end",
             device="cuda:0")
-        # Controller 7
+        # Controller 8
         from stable_baselines3 import SAC
         sac_model = SAC.load(
             "results/2M_training/saves/sac-quad/sac-quad_end",
             device="cuda:0")
 
-        # Controller 8
+        # Controller 9
         from stable_baselines3 import TD3
         td3_model = TD3.load(
             "results/2M_training/saves/td3-quad/td3-quad_end",
             device="cuda:0")
-        # Controller 9
+        # Controller 10
         from stable_baselines3 import A2C
         a2c_model = A2C.load(
             "results/2M_training/saves/a2c-quad/a2c-quad_end",
@@ -224,6 +245,7 @@ def compare_all(compare_rl_models=False,
                         set_constant_reference,
                         pid,
                         lqr,
+                        lqg,
                         nonlinear_mpc,
                         linear_mpc,
                         ddpg_model,
@@ -276,8 +298,17 @@ def compare_controller_input_limits(plot=False, save_plot=False,
                             keep_history=False)
 
     lqr = LQR(env)
+    
+    # Controller 3
+    from controllers.lqg import LQG
+    from envs.quad import StochasticQuad, linear_quad_dynamics
+    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
+                            simulation_freq=250, control_freq=50,
+                            keep_history=False)
 
-    # Controller 3 and 4
+    lqg = LQG(env)
+
+    # Controller 4 and 5
     from controllers.nonlinear_mpc import Nonlinear_MPC
     from controllers.linear_mpc import Linear_MPC
     # import time
@@ -300,7 +331,7 @@ def compare_controller_input_limits(plot=False, save_plot=False,
                         constant_reference,
                         set_custom_u_limit,
                         set_constant_reference,
-                        pid, lqr, nonlinear_mpc, linear_mpc, plot=plot,
+                        pid, lqr, lqg, nonlinear_mpc, linear_mpc, plot=plot,
                         save_plot=save_plot)
 
 
@@ -346,6 +377,15 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
     lqr = LQR(env)
 
     # Controller 3
+    from controllers.lqg import LQG
+    from envs.quad import StochasticQuad, linear_quad_dynamics
+    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
+                            simulation_freq=250, control_freq=50,
+                            keep_history=False)
+
+    lqg = LQG(env)
+
+    # Controller 4-5
     from controllers.nonlinear_mpc import Nonlinear_MPC
     from controllers.linear_mpc import Linear_MPC
     # import time
@@ -369,7 +409,7 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
                         constant_reference,
                         set_custom_u_limit,
                         set_constant_reference,
-                        pid, lqr, nonlinear_mpc, linear_mpc, plot=plot,
+                        pid, lqr, lqg, nonlinear_mpc, linear_mpc, plot=plot,
                         save_plot=save_plot)
 
 
@@ -485,12 +525,13 @@ def compare_controllers(dynamics_state,
                         controller1,
                         controller2,
                         controller3,
-                        controller4=None,
+                        controller4,
                         controller5=None,
                         controller6=None,
                         controller7=None,
                         controller8=None,
                         controller9=None,
+                        controller10=None,
                         plot=False, save_plot=False):
     c1_env1 = c1_env2 = \
         c1_env3 = c1_env4 = \
@@ -509,7 +550,9 @@ def compare_controllers(dynamics_state,
         c8_env1 = c8_env2 = \
         c8_env3 = c8_env4 = \
         c9_env1 = c9_env2 = \
-        c9_env3 = c9_env4 = None
+        c9_env3 = c9_env4 = \
+        c10_env1 = c10_env2 = \
+        c10_env3 = c10_env4 = None
 
     num_episode = 1
 
@@ -555,6 +598,8 @@ def compare_controllers(dynamics_state,
         print("Env3: ")
         calculateControllerMetrics(c2_env3)
 
+    #TODO :Change Controller Names
+
     if controller3 is not None:
         c3_env1, c3_env2, c3_env3, c3_env4 =\
             createEnvs(t_end=t_end,
@@ -570,7 +615,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller3, c3_env1, c3_env2,
                       c3_env3, c3_env4, num_episode)
         elapsed3 = time.time() - t3
-        print("NL-MPC Computation Time: %1.3f sec" % elapsed3)
+        print("LQG Computation Time: %1.3f sec" % elapsed3)
         print("Env1: ")
         calculateControllerMetrics(c3_env1)
         print("Env3: ")
@@ -591,7 +636,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller4, c4_env1, c4_env2,
                       c4_env3, c4_env4, num_episode)
         elapsed4 = time.time() - t4
-        print("L-MPC Computation Time: %1.3f sec" % elapsed4)
+        print("NL-MPC Computation Time: %1.3f sec" % elapsed4)
         print("Env1: ")
         calculateControllerMetrics(c4_env1)
         print("Env3: ")
@@ -612,7 +657,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller5, c5_env1, c5_env2,
                       c5_env3, c5_env4, num_episode)
         elapsed5 = time.time() - t5
-        print("DDPG Computation Time: %1.3f sec" % elapsed5)
+        print("L-MPC Computation Time: %1.3f sec" % elapsed5)
         print("Env1: ")
         calculateControllerMetrics(c5_env1)
         print("Env3: ")
@@ -633,7 +678,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller6, c6_env1, c6_env2,
                       c6_env3, c6_env4, num_episode)
         elapsed6 = time.time() - t6
-        print("PPO Computation Time: %1.3f sec" % elapsed6)
+        print("DDPG Computation Time: %1.3f sec" % elapsed6)
         print("Env1: ")
         calculateControllerMetrics(c6_env1)
         print("Env3: ")
@@ -654,7 +699,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller7, c7_env1, c7_env2,
                       c7_env3, c7_env4, num_episode)
         elapsed7 = time.time() - t7
-        print("SAC Computation Time: %1.3f sec" % elapsed7)
+        print("PPO Computation Time: %1.3f sec" % elapsed7)
         print("Env1: ")
         calculateControllerMetrics(c7_env1)
         print("Env3: ")
@@ -675,7 +720,7 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller8, c8_env1, c8_env2,
                       c8_env3, c8_env4, num_episode)
         elapsed8 = time.time() - t8
-        print("TD3 Computation Time: %1.3f sec" % elapsed8)
+        print("SAC Computation Time: %1.3f sec" % elapsed8)
         print("Env1: ")
         calculateControllerMetrics(c8_env1)
         print("Env3: ")
@@ -696,11 +741,32 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller9, c9_env1, c9_env2,
                       c9_env3, c9_env4, num_episode)
         elapsed9 = time.time() - t9
-        print("A2C Computation Time: %1.3f sec" % elapsed9)
+        print("TD3 A2C Computation Time: %1.3f sec" % elapsed9)
         print("Env1: ")
         calculateControllerMetrics(c9_env1)
         print("Env3: ")
         calculateControllerMetrics(c9_env3)
+
+    if controller10 is not None:
+        c10_env1, c10_env2, c10_env3, c10_env4 =\
+            createEnvs(t_end=t_end,
+                       simulation_freq=simulation_freq,
+                       control_freq=control_freq,
+                       random_state_seed=0,
+                       set_custom_u_limit=set_custom_u_limit,
+                       custom_u_high=custom_u_high,
+                       set_constant_reference=set_constant_reference,
+                       constant_reference=constant_reference,
+                       dynamics_state=dynamics_state)
+        t10 = time.time()
+        simulate_envs(controller10, c10_env1, c10_env2,
+                      c10_env3, c10_env4, num_episode)
+        elapsed10 = time.time() - t10
+        print("A2C Computation Time: %1.3f sec" % elapsed9)
+        print("Env1: ")
+        calculateControllerMetrics(c10_env1)
+        print("Env3: ")
+        calculateControllerMetrics(c10_env3)
 
     if plot:
         from plotter import Plotter
@@ -726,6 +792,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=0)
         plotter.plot_only_specific_element(
                                            c1_env1, c1_env2,
@@ -746,6 +814,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=1)
         plotter.plot_only_specific_element(
                                            c1_env1, c1_env2,
@@ -766,6 +836,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=2)
         plotter.plot_only_specific_element(
                                            c1_env1, c1_env2,
@@ -786,6 +858,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=3)
         plotter.plot_only_specific_element(
                                            c1_env1, c1_env2,
@@ -806,6 +880,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=4)
         plotter.plot_only_specific_element(
                                            c1_env1, c1_env2,
@@ -826,6 +902,8 @@ def compare_controllers(dynamics_state,
                                            c8_env3, c8_env4,
                                            c9_env1, c9_env2,
                                            c9_env3, c9_env4,
+                                           c10_env1, c10_env2,
+                                           c10_env3, c10_env4,
                                            save_plot=save_plot, axis=5)
         plotter.plot_compare_input_values(
                                           c1_env1, c1_env2,
@@ -846,6 +924,8 @@ def compare_controllers(dynamics_state,
                                           c8_env3, c8_env4,
                                           c9_env1, c9_env2,
                                           c9_env3, c9_env4,
+                                          c10_env1, c10_env2,
+                                          c10_env3, c10_env4,
                                           save_plot=save_plot)
         plotter.plot_compare_input_values(
                                           c1_env1, c1_env2,
@@ -866,6 +946,8 @@ def compare_controllers(dynamics_state,
                                           c8_env3, c8_env4,
                                           c9_env1, c9_env2,
                                           c9_env3, c9_env4,
+                                          c10_env1, c10_env2,
+                                          c10_env3, c10_env4,
                                           save_plot=save_plot, axis=1)
         plotter.plot_compare_input_values(
                                           c1_env1, c1_env2,
@@ -886,6 +968,8 @@ def compare_controllers(dynamics_state,
                                           c8_env3, c8_env4,
                                           c9_env1, c9_env2,
                                           c9_env3, c9_env4,
+                                          c10_env1, c10_env2,
+                                          c10_env3, c10_env4,
                                           save_plot=save_plot, axis=2)
         if plot:
             plotter.show()
@@ -1087,17 +1171,18 @@ def simulate_envs(controller, env1, env2, env3, env4, num_episode):
 
 if __name__ == '__main__':
     from unit_tests import unittest_main
-    unittest_main()
+    # unittest_main()
 
     # test_all_environments_open_loop(plot=True, save_plot=False)
     # test_pid(plot=True, save_plot=False)
     # test_lqr(plot=True, save_plot=False, loadmodel=False)
+    # test_lqg(plot=True, save_plot=False, loadmodel=False)
     # test_NonlinearMPC(plot=True, save_plot=False)
     # test_LinearMPC(plot=True, save_plot=False)
     # test_rl(plot=True, save_plot=False, loadmodel=True)
     # test_sac(plot=True, save_plot=False, loadmodel=True)
 
-    compare_all(compare_rl_models=True,
+    compare_all(compare_rl_models=False,
                 plot=True, save_plot=False, loadmodel=False)
     # compare_controller_input_limits(plot=True, save_plot=False,
     #                                 loadmodel=False)

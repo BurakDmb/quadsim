@@ -30,6 +30,8 @@ class Plotter:
                                    c8_env3=None, c8_env4=None,
                                    c9_env1=None, c9_env2=None,
                                    c9_env3=None, c9_env4=None,
+                                   c10_env1=None, c10_env2=None,
+                                   c10_env3=None, c10_env4=None,
                                    axis=0, save_plot=False):
         # Plotting the simulation recorded
         fig, ((ax1, ax2), (ax3, ax4)) = self.plt.subplots(2, 2)
@@ -50,24 +52,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env1 is not None:
             ax1.plot(c3_env1.t, c3_env1.history.sol_x[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env1 is not None:
             ax1.plot(c4_env1.t, c4_env1.history.sol_x[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env1 is not None:
             ax1.plot(c5_env1.t, c5_env1.history.sol_x[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env1 is not None:
             ax1.plot(c6_env1.t, c6_env1.history.sol_x[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env1 is not None:
             ax1.plot(c7_env1.t, c7_env1.history.sol_x[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env1 is not None:
             ax1.plot(c8_env1.t, c8_env1.history.sol_x[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env1 is not None:
             ax1.plot(c9_env1.t, c9_env1.history.sol_x[axis, :].T)
+            legend.append('TD3')
+        if c10_env1 is not None:
+            ax1.plot(c10_env1.t, c10_env1.history.sol_x[axis, :].T)
             legend.append('A2C')
 
         ax1.set_xlabel('Time(second)')
@@ -85,24 +90,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env2 is not None:
             ax2.plot(c3_env2.t, c3_env2.history.sol_x[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env2 is not None:
             ax2.plot(c4_env2.t, c4_env2.history.sol_x[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env2 is not None:
             ax2.plot(c5_env2.t, c5_env2.history.sol_x[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env2 is not None:
             ax2.plot(c6_env2.t, c6_env2.history.sol_x[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env2 is not None:
             ax2.plot(c7_env2.t, c7_env2.history.sol_x[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env2 is not None:
             ax2.plot(c8_env2.t, c8_env2.history.sol_x[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env2 is not None:
             ax2.plot(c9_env2.t, c9_env2.history.sol_x[axis, :].T)
+            legend.append('TD3')
+        if c10_env2 is not None:
+            ax2.plot(c10_env2.t, c10_env2.history.sol_x[axis, :].T)
             legend.append('A2C')
 
         ax2.set_xlabel('Time(second)')
@@ -120,24 +128,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env3 is not None:
             ax3.plot(c3_env3.t, c3_env3.history.sol_x[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env3 is not None:
             ax3.plot(c4_env3.t, c4_env3.history.sol_x[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env3 is not None:
             ax3.plot(c5_env3.t, c5_env3.history.sol_x[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env3 is not None:
             ax3.plot(c6_env3.t, c6_env3.history.sol_x[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env3 is not None:
             ax3.plot(c7_env3.t, c7_env3.history.sol_x[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env3 is not None:
             ax3.plot(c8_env3.t, c8_env3.history.sol_x[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env3 is not None:
             ax3.plot(c9_env3.t, c9_env3.history.sol_x[axis, :].T)
+            legend.append('TD3')
+        if c10_env3 is not None:
+            ax3.plot(c10_env3.t, c10_env3.history.sol_x[axis, :].T)
             legend.append('A2C')
 
         ax3.set_xlabel('Time(second)')
@@ -155,24 +166,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env4 is not None:
             ax4.plot(c3_env4.t, c3_env4.history.sol_x[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env4 is not None:
             ax4.plot(c4_env4.t, c4_env4.history.sol_x[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env4 is not None:
             ax4.plot(c5_env4.t, c5_env4.history.sol_x[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env4 is not None:
             ax4.plot(c6_env4.t, c6_env4.history.sol_x[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env4 is not None:
             ax4.plot(c7_env4.t, c7_env4.history.sol_x[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env4 is not None:
             ax4.plot(c8_env4.t, c8_env4.history.sol_x[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env4 is not None:
             ax4.plot(c9_env4.t, c9_env4.history.sol_x[axis, :].T)
+            legend.append('TD3')
+        if c10_env4 is not None:
+            ax4.plot(c10_env4.t, c10_env4.history.sol_x[axis, :].T)
             legend.append('A2C')
 
         ax4.set_xlabel('Time(second)')
@@ -203,6 +217,8 @@ class Plotter:
                                   c8_env3=None, c8_env4=None,
                                   c9_env1=None, c9_env2=None,
                                   c9_env3=None, c9_env4=None,
+                                  c10_env1=None, c10_env2=None,
+                                  c10_env3=None, c10_env4=None,
                                   axis=0, save_plot=False):
 
         # Plotting the simulation recorded
@@ -223,24 +239,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env1 is not None:
             ax1.plot(c3_env1.t, c3_env1.history.sol_actions[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env1 is not None:
             ax1.plot(c4_env1.t, c4_env1.history.sol_actions[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env1 is not None:
             ax1.plot(c5_env1.t, c5_env1.history.sol_actions[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env1 is not None:
             ax1.plot(c6_env1.t, c6_env1.history.sol_actions[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env1 is not None:
             ax1.plot(c7_env1.t, c7_env1.history.sol_actions[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env1 is not None:
             ax1.plot(c8_env1.t, c8_env1.history.sol_actions[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env1 is not None:
             ax1.plot(c9_env1.t, c9_env1.history.sol_actions[axis, :].T)
+            legend.append('TD3')
+        if c10_env1 is not None:
+            ax1.plot(c10_env1.t, c10_env1.history.sol_actions[axis, :].T)
             legend.append('A2C')
 
         ax1.set_xlabel('Time(second)')
@@ -257,24 +276,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env2 is not None:
             ax2.plot(c3_env2.t, c3_env2.history.sol_actions[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env2 is not None:
             ax2.plot(c4_env2.t, c4_env2.history.sol_actions[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env2 is not None:
             ax2.plot(c5_env2.t, c5_env2.history.sol_actions[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env2 is not None:
             ax2.plot(c6_env2.t, c6_env2.history.sol_actions[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env2 is not None:
             ax2.plot(c7_env2.t, c7_env2.history.sol_actions[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env2 is not None:
             ax2.plot(c8_env2.t, c8_env2.history.sol_actions[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env2 is not None:
             ax2.plot(c9_env2.t, c9_env2.history.sol_actions[axis, :].T)
+            legend.append('TD3')
+        if c10_env2 is not None:
+            ax2.plot(c10_env2.t, c10_env2.history.sol_actions[axis, :].T)
             legend.append('A2C')
 
         ax2.set_xlabel('Time(second)')
@@ -291,24 +313,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env3 is not None:
             ax3.plot(c3_env3.t, c3_env3.history.sol_actions[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env3 is not None:
             ax3.plot(c4_env3.t, c4_env3.history.sol_actions[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env3 is not None:
             ax3.plot(c5_env3.t, c5_env3.history.sol_actions[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env3 is not None:
             ax3.plot(c6_env3.t, c6_env3.history.sol_actions[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env3 is not None:
             ax3.plot(c7_env3.t, c7_env3.history.sol_actions[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env3 is not None:
             ax3.plot(c8_env3.t, c8_env3.history.sol_actions[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env3 is not None:
             ax3.plot(c9_env3.t, c9_env3.history.sol_actions[axis, :].T)
+            legend.append('TD3')
+        if c10_env3 is not None:
+            ax3.plot(c10_env3.t, c10_env3.history.sol_actions[axis, :].T)
             legend.append('A2C')
 
         ax3.set_xlabel('Time(second)')
@@ -325,24 +350,27 @@ class Plotter:
             legend.append('LQR')
         if c3_env4 is not None:
             ax4.plot(c3_env4.t, c3_env4.history.sol_actions[axis, :].T)
-            legend.append('NL-MPC')
+            legend.append('LQG')
         if c4_env4 is not None:
             ax4.plot(c4_env4.t, c4_env4.history.sol_actions[axis, :].T)
-            legend.append('L-MPC')
+            legend.append('NL-MPC')
         if c5_env4 is not None:
             ax4.plot(c5_env4.t, c5_env4.history.sol_actions[axis, :].T)
-            legend.append('DDPG')
+            legend.append('L-MPC')
         if c6_env4 is not None:
             ax4.plot(c6_env4.t, c6_env4.history.sol_actions[axis, :].T)
-            legend.append('PPO')
+            legend.append('DDPG')
         if c7_env4 is not None:
             ax4.plot(c7_env4.t, c7_env4.history.sol_actions[axis, :].T)
-            legend.append('SAC')
+            legend.append('PPO')
         if c8_env4 is not None:
             ax4.plot(c8_env4.t, c8_env4.history.sol_actions[axis, :].T)
-            legend.append('TD3')
+            legend.append('SAC')
         if c9_env4 is not None:
             ax4.plot(c9_env4.t, c9_env4.history.sol_actions[axis, :].T)
+            legend.append('TD3')
+        if c10_env4 is not None:
+            ax4.plot(c10_env4.t, c10_env4.history.sol_actions[axis, :].T)
             legend.append('A2C')
 
         ax4.set_xlabel('Time(second)')
