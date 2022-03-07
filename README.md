@@ -10,6 +10,23 @@ Below, you can see the assumptions made before a mathematical model:
 * Drag and thrust forces are proportional to the square of the propellers speed.
 * The propellers are rigid.
 
+## Citing the Project
+
+To cite this repository in publications:
+
+https://arxiv.org/abs/2202.07021
+
+Bibtex:
+
+```bibtex
+@article{demirbilek2022quadsim,
+  title={QuadSim: A Quadcopter Rotational Dynamics Simulation Framework For Reinforcement Learning Algorithms},
+  author={Demirbilek, Burak Han},
+  journal={arXiv preprint arXiv:2202.07021},
+  year={2022}
+}
+```
+
 ## Mathematical Formulation, Definitions, Dynamics
 
 ### Coordinate Frames
@@ -449,54 +466,4 @@ To run the test codes, please execute this command:
 `export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/controllers/hsl/lib"`
 `python3 test.py`
 
-## Gitlab CI
 
-<http://10.1.46.207/help/ci/quick_start/README>
-<https://docs.gitlab.com/runner/install/linux-manually.html>
-
-```bash
-wget https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb
-sudo dpkg -i gitlab-runner_amd64.deb
-# Register the runner with the url and token information which can be found at 
-# http://10.1.46.207/akad/python/environment/quad_rotational_simulation/-/settings/ci_cd
-# The name of this runner given to be omtam-gitlab
-gitlab-runner register
-```
-
-Replace this code below with using this command: `gedit ~/.gitlab-runner/config.toml`
-<https://beenje.github.io/blog/posts/gitlab-ci-and-conda/>
-
-
-```toml
-concurrent = 1
-check_interval = 0
-
-[session_server]
-  session_timeout = 1800
-
-[[runners]]
-  environment = ["https_proxy=http://10.1.200.207:8080", "http_proxy=http://10.1.200.207:8080", "HTTPS_PROXY=http://10.1.200.207:8080", "HTTP_PROXY=http://10.1.200.207:8080", "no_proxy=10.1.46.207", "NO_PROXY=10.1.46.207"]
-  name = "bhdemirbilek-runner"
-  url = "http://10.1.46.207/"
-  token = "gbVZv1EBxPkYsms6y9HA"
-  executor = "docker"
-  [runners.custom_build_dir]
-  [runners.cache]
-   [runners.cache.s3]
-   [runners.cache.gcs]
-   [runners.cache.azure]
-  [runners.docker]
-   tls_verify = false
-   image = "continuumio/miniconda3:latest"
-   privileged = false
-   disable_entrypoint_overwrite = false
-   oom_kill_disable = false
-   disable_cache = false
-   volumes = ["/cache", "/opt/cache/conda/pkgs:/opt/conda/pkgs:rw", "/opt/cache/pip:/opt/cache/pip:rw"]
-   shm_size = 0
-
-```
-
-```bash
-gitlab-runner run
-```
