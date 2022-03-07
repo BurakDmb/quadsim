@@ -52,7 +52,7 @@ class Linear_MPC:
         self.mpc = do_mpc.controller.MPC(model)
 
         # Optimizer Parameters
-        # Parametreleri incele.
+
         setup_mpc = {
             'n_horizon': n_horizon,
             't_step': c_step,

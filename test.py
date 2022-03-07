@@ -2,7 +2,24 @@ import numpy as np
 import sys
 import time
 
-from envs.quad import StochasticQuad
+from envs.quad import DeterministicQuad, StochasticQuad
+from envs.quad import linear_quad_dynamics, nonlinear_quad_dynamics
+
+from controllers.pid import PID_Controller
+
+from controllers.lqr import LQR
+from controllers.lqg import LQG
+
+from controllers.linear_mpc import Linear_MPC
+from controllers.nonlinear_mpc import Nonlinear_MPC
+
+from stable_baselines3 import PPO
+from stable_baselines3 import SAC
+from stable_baselines3 import A2C
+from stable_baselines3 import TD3
+from stable_baselines3 import DDPG
+
+from plotter import Plotter
 
 n_horizon = 20
 control_freq = 50
@@ -11,10 +28,6 @@ t_end = 5
 
 
 def test_NonlinearMPC(plot=False, save_plot=False, loadmodel=False):
-    from controllers.nonlinear_mpc import Nonlinear_MPC
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
-    import time
-
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -32,9 +45,6 @@ def test_NonlinearMPC(plot=False, save_plot=False, loadmodel=False):
 
 
 def test_LinearMPC(plot=False, save_plot=False, loadmodel=False):
-    from controllers.linear_mpc import Linear_MPC
-    import time
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -52,8 +62,7 @@ def test_LinearMPC(plot=False, save_plot=False, loadmodel=False):
 
 
 def test_lqr(plot=False, save_plot=False, loadmodel=False):
-    from controllers.lqr import LQR
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
+
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -61,9 +70,8 @@ def test_lqr(plot=False, save_plot=False, loadmodel=False):
     lqr = LQR(env)
     test_controller(lqr, t_end, plot=plot, save_plot=save_plot)
 
+
 def test_lqg(plot=False, save_plot=False, loadmodel=False):
-    from controllers.lqg import LQG
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -73,8 +81,7 @@ def test_lqg(plot=False, save_plot=False, loadmodel=False):
 
 
 def test_rl(plot=False, save_plot=False, loadmodel=False):
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
-    from stable_baselines3 import PPO
+
     print("*** Function: ", sys._getframe().f_code.co_name, "***")
 
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
@@ -94,17 +101,12 @@ def test_rl(plot=False, save_plot=False, loadmodel=False):
 
 
 def test_sac(plot=False, save_plot=False, loadmodel=False):
-    # from parameters import sac_learning_setting as learning_setting
-    # from envs.quad import DeterministicQuad, linear_quad_dynamics
-    from stable_baselines3 import SAC
-
     if loadmodel:
         # model = SAC.load("saves/sac-quad/_end_2021-10-22 03:18:15.143412",
         #                  device="cuda:0")
         model = SAC.load("saves/sac-quad/sac-quad_550000_steps",
                          device="cuda:0")
     else:
-        from envs.quad import DeterministicQuad, linear_quad_dynamics
         env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                                 simulation_freq=250, control_freq=50,
                                 keep_history=False)
@@ -117,8 +119,6 @@ def test_sac(plot=False, save_plot=False, loadmodel=False):
 
 
 def test_pid(plot=False, save_plot=False):
-    from controllers.pid import PID_Controller
-
     rollKp = 4.72531916175911
     rollKi = 3.73086282471387
     rollKd = 1.49621161575424
@@ -155,7 +155,6 @@ def compare_all(compare_rl_models=False,
     set_constant_reference = True
 
     # Controller 1
-    from controllers.pid import PID_Controller
 
     rollKp = 4.72531916175911
     rollKi = 3.73086282471387
@@ -177,8 +176,6 @@ def compare_all(compare_rl_models=False,
                          yawKp, yawKi, yawKd, T,
                          limRoll, limPitch, limYaw)
     # Controller 2
-    from controllers.lqr import LQR
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -186,17 +183,13 @@ def compare_all(compare_rl_models=False,
     lqr = LQR(env)
 
     # Controller 3
-    from controllers.lqg import LQG
-    from envs.quad import StochasticQuad, linear_quad_dynamics
     env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
+                         simulation_freq=250, control_freq=50,
+                         keep_history=False)
 
     lqg = LQG(env)
 
     # Controller 4 and 5
-    from controllers.nonlinear_mpc import Nonlinear_MPC
-    from controllers.linear_mpc import Linear_MPC
 
     nonlinear_mpc = Nonlinear_MPC(t_end=t_end,
                                   n_horizon=int(n_horizon),
@@ -212,28 +205,23 @@ def compare_all(compare_rl_models=False,
     ddpg_model = ppo_model = sac_model = td3_model = a2c_model = None
     if compare_rl_models:
         # Controller 6
-        from stable_baselines3 import DDPG
         ddpg_model = DDPG.load(
             "results/2M_training/saves/ddpg-quad/ddpg-quad_end",
             device="cuda:0")
         # Controller 7
-        from stable_baselines3 import PPO
         ppo_model = PPO.load(
             "results/2M_training/saves/ppo-quad/ppo-quad_end",
             device="cuda:0")
         # Controller 8
-        from stable_baselines3 import SAC
         sac_model = SAC.load(
             "results/2M_training/saves/sac-quad/sac-quad_end",
             device="cuda:0")
 
         # Controller 9
-        from stable_baselines3 import TD3
         td3_model = TD3.load(
             "results/2M_training/saves/td3-quad/td3-quad_end",
             device="cuda:0")
         # Controller 10
-        from stable_baselines3 import A2C
         a2c_model = A2C.load(
             "results/2M_training/saves/a2c-quad/a2c-quad_end",
             device="cuda:0")
@@ -269,7 +257,6 @@ def compare_controller_input_limits(plot=False, save_plot=False,
     set_constant_reference = True
 
     # Controller 1
-    from controllers.pid import PID_Controller
 
     rollKp = 4.72531916175911
     rollKi = 3.73086282471387
@@ -291,27 +278,21 @@ def compare_controller_input_limits(plot=False, save_plot=False,
                          yawKp, yawKi, yawKd, T,
                          limRoll, limPitch, limYaw)
     # Controller 2
-    from controllers.lqr import LQR
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
+
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
 
     lqr = LQR(env)
-    
+
     # Controller 3
-    from controllers.lqg import LQG
-    from envs.quad import StochasticQuad, linear_quad_dynamics
     env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
+                         simulation_freq=250, control_freq=50,
+                         keep_history=False)
 
     lqg = LQG(env)
 
     # Controller 4 and 5
-    from controllers.nonlinear_mpc import Nonlinear_MPC
-    from controllers.linear_mpc import Linear_MPC
-    # import time
 
     # start = time.time()
     # print("*** Function: ", sys._getframe().f_code.co_name, "***")
@@ -346,7 +327,6 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
     set_constant_reference = True
 
     # Controller 1
-    from controllers.pid import PID_Controller
 
     rollKp = 4.72531916175911
     rollKi = 3.73086282471387
@@ -368,8 +348,6 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
                          yawKp, yawKi, yawKd, T,
                          limRoll, limPitch, limYaw)
     # Controller 2
-    from controllers.lqr import LQR
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
                             keep_history=False)
@@ -377,18 +355,13 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
     lqr = LQR(env)
 
     # Controller 3
-    from controllers.lqg import LQG
-    from envs.quad import StochasticQuad, linear_quad_dynamics
     env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
+                         simulation_freq=250, control_freq=50,
+                         keep_history=False)
 
     lqg = LQG(env)
 
     # Controller 4-5
-    from controllers.nonlinear_mpc import Nonlinear_MPC
-    from controllers.linear_mpc import Linear_MPC
-    # import time
 
     # start = time.time()
     # print("*** Function: ", sys._getframe().f_code.co_name, "***")
@@ -415,8 +388,6 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
 
 def compare_parameters(plot=False, save_plot=False, loadmodel=False):
     print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    from controllers.nonlinear_mpc import Nonlinear_MPC
-    from envs.quad import DeterministicQuad, linear_quad_dynamics
     t_end = 5
     env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
                             simulation_freq=250, control_freq=50,
@@ -471,8 +442,6 @@ def createEnvs(t_end, simulation_freq,
                constant_reference,
                dynamics_state=np.array([3.14/4, 0, 0, 0, 0, 0]),
                eval_env=True):
-    from envs.quad import DeterministicQuad, StochasticQuad
-    from envs.quad import linear_quad_dynamics, nonlinear_quad_dynamics
 
     # Linear deterministic quadcopter
     env1 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
@@ -598,7 +567,7 @@ def compare_controllers(dynamics_state,
         print("Env3: ")
         calculateControllerMetrics(c2_env3)
 
-    #TODO :Change Controller Names
+    # TODO :Change Controller Names
 
     if controller3 is not None:
         c3_env1, c3_env2, c3_env3, c3_env4 =\
@@ -762,14 +731,13 @@ def compare_controllers(dynamics_state,
         simulate_envs(controller10, c10_env1, c10_env2,
                       c10_env3, c10_env4, num_episode)
         elapsed10 = time.time() - t10
-        print("A2C Computation Time: %1.3f sec" % elapsed9)
+        print("A2C Computation Time: %1.3f sec" % elapsed10)
         print("Env1: ")
         calculateControllerMetrics(c10_env1)
         print("Env3: ")
         calculateControllerMetrics(c10_env3)
 
     if plot:
-        from plotter import Plotter
         plotter = Plotter(type(controller1).__name__ +
                           '-' + type(controller2).__name__ +
                           '-' + type(controller3).__name__)
@@ -1034,7 +1002,6 @@ def compare_controller_parameters(controller1, controller2, controller3,
     calculateControllerMetrics(c3_env1)
 
     if plot:
-        from plotter import Plotter
         plotter = Plotter(type(controller1).__name__ +
                           '-' + type(controller2).__name__ +
                           '-' + type(controller3).__name__)
@@ -1069,7 +1036,6 @@ def test_controller(controller, t_end, plot=False, save_plot=False,
     calculateControllerMetrics(env1)
 
     if plot:
-        from plotter import Plotter
         plotter = Plotter(type(controller).__name__)
         plotter.plot_only_specific_element(env1, env2, env3, env4,
                                            save_plot=save_plot)
@@ -1170,7 +1136,7 @@ def simulate_envs(controller, env1, env2, env3, env4, num_episode):
 
 
 if __name__ == '__main__':
-    from unit_tests import unittest_main
+    # from unit_tests import unittest_main
     # unittest_main()
 
     # test_all_environments_open_loop(plot=True, save_plot=False)
