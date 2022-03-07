@@ -413,57 +413,30 @@ Actions:
 
 !["LQR example simulation, Actions"](images/LQR_plot_actions.png "LQR example simulation, Actions")
 
-## Installing the python packages with Docker(also with vscode devcontainers)
+## Installation
 
-### Using Vscode Dev Container Extension
-
-1- Open the project with vscode
-
-2- Install the extention named "Remote - Containers"
-
-3- The extension automatically asks that if you want to open this folder in dev container, click yes. (Or press f1 and search for 'Remote Containers: Rebuild Container and Open')
-
-4- It will automatically install the required packages in the dev container, note that the image size will be ~7-8 GB.
-
-### Using Classic Docker
-
-There is a Dockerfile in the path `.devcontainer/Dockerfile` which you can build and start the ready to use dockerfile.
-
+### Required python packages
 ```
-cd .devcontainer/
+conda create -n quadsim python=3.7 -y
+conda activate quadsim
 
-docker build -t akad/quad_rotational_simulation:v0 .
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install -c conda-forge gym matplotlib multiprocess slycot control stable-baselines3 tensorboard flake8 casadi libgfortran==3.0.0 -y
 
-docker run -it --rm --init --gpus all --device /dev/nvidia0 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl --net "host" -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix akad/quad_rotational_simulation:v0
-```
-## Required python packages
-
-```bash
-# For Environment
-pip install gym matplotlib multiprocess
-
-# For LQR Controller
-sudo apt install cmake gfortran libopenblas-dev libgfortran3
-pip install slycot control
-
-# For MPC Controller
 pip install do-mpc
-
-# For RL Controller
-pip install stable_baselines3 tensorboard
-# For Linter(Not required for most of the purposes)
-pip install flake8
 ```
 
-## Running the tensorboard to observe the learning
+### Running the tensorboard to observe the learning
 
 `tensorboard --logdir ./logs/quad_tensorboard/`
 
-## Executing the tests
+### Executing the tests
 
 To run the test codes, please execute this command:
-`cd quad_rotational_simulation`
-`export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/controllers/hsl/lib"`
-`python3 test.py`
-
+```bash
+cd quad_rotational_simulation
+conda activate quadsim
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/controllers/hsl/lib"
+python test.py
+```
 
