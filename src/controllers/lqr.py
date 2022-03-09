@@ -7,7 +7,8 @@ class LQR:
         self.env = env
         A = self.env.A
         B = self.env.B
-        # For the lqr-lqg notation, M and P are used for cost matrix definitions instead of Q and R.
+        # For the lqr-lqg notation, M and P are used for cost matrix
+        # definitions instead of Q and R.
         # Q and R corresponds to the wk and vk covariance matrices.
         M = self.env.Q
         P = self.env.R

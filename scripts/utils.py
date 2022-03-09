@@ -1,489 +1,110 @@
 import numpy as np
-import sys
 import time
+import os
 
-from envs.quad import DeterministicQuad, StochasticQuad
-from envs.quad import linear_quad_dynamics, nonlinear_quad_dynamics
+import sys
+sys.path.insert(0, './')
 
-from controllers.pid import PID_Controller
+from src.envs.quad import DeterministicQuad  # noqa: E402
+from src.envs.quad import StochasticQuad  # noqa: E402
+from src.envs.quad import linear_quad_dynamics  # noqa: E402
+from src.envs.quad import nonlinear_quad_dynamics  # noqa: E402
 
-from controllers.lqr import LQR
-from controllers.lqg import LQG
-
-from controllers.linear_mpc import Linear_MPC
-from controllers.nonlinear_mpc import Nonlinear_MPC
-
-from stable_baselines3 import PPO
-from stable_baselines3 import SAC
-from stable_baselines3 import A2C
-from stable_baselines3 import TD3
-from stable_baselines3 import DDPG
-
-from plotter import Plotter
-
-n_horizon = 20
-control_freq = 50
-simulation_freq = 250
-t_end = 5
+from src.plotter import Plotter  # noqa: E402
 
 
-def test_NonlinearMPC(plot=False, save_plot=False, loadmodel=False):
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
+# Note that before running, these LD Library Path needs to be configured
+# Run this command in your terminal
+# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"
+def check_mpc_hsl_solver_in_path():
+    if not any(
+        os.getcwd()+"/src/controllers/hsl/lib" in x
+            for x in os.environ['LD_LIBRARY_PATH'].split(':')):
 
-    start = time.time()
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    nonlinear_mpc = Nonlinear_MPC(t_end=t_end,
-                                  n_horizon=n_horizon,
-                                  c_step=1/control_freq,
-                                  s_step=1/simulation_freq,
-                                  env=env)
-    test_controller(nonlinear_mpc, t_end, plot=plot, save_plot=save_plot)
-    end = time.time()
-    print(end-start)
-
-
-def test_LinearMPC(plot=False, save_plot=False, loadmodel=False):
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-
-    start = time.time()
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    linear_mpc = Linear_MPC(t_end=t_end,
-                            n_horizon=n_horizon,
-                            c_step=1/control_freq,
-                            s_step=1/simulation_freq,
-                            env=env)
-    test_controller(linear_mpc, t_end, plot=plot, save_plot=save_plot)
-    end = time.time()
-    print(end-start)
+        print("MPC HSL Solver in LD_LIBRARY_PATH does not found.")
+        print(
+            "Please run this command in terminal at " +
+            "working directory root folder:"
+            )
+        print(
+            r'export LD_LIBRARY_PATH=' +
+            r'"$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"')
+        exit(1)
 
 
-def test_lqr(plot=False, save_plot=False, loadmodel=False):
+def compare_controller_parameters(controller1, controller2, controller3,
+                                  plot=False, save_plot=False):
 
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    lqr = LQR(env)
-    test_controller(lqr, t_end, plot=plot, save_plot=save_plot)
+    control_freq = 50
+    simulation_freq = 250
+    t_end = 5
 
-
-def test_lqg(plot=False, save_plot=False, loadmodel=False):
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    lqr = LQG(env)
-    test_controller(lqr, t_end, plot=plot, save_plot=save_plot)
-
-
-def test_rl(plot=False, save_plot=False, loadmodel=False):
-
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-    if loadmodel:
-        # model = PPO.load("saves/ppo-quad/2021-10-21 01:21:42.065619",
-        #                  device="cuda:0")
-        model = PPO.load("saves/ppo-quad/ppo-quad_700000_steps",
-                         device="cuda:0")
-    else:
-        model = PPO('MlpPolicy', env, verbose=1, device='cuda:0')
-        model.learn(total_timesteps=100_000)
-        model.save("rl_models/ppo")
-
-    test_controller(model, t_end, plot=plot, save_plot=save_plot)
-
-
-def test_sac(plot=False, save_plot=False, loadmodel=False):
-    if loadmodel:
-        # model = SAC.load("saves/sac-quad/_end_2021-10-22 03:18:15.143412",
-        #                  device="cuda:0")
-        model = SAC.load("saves/sac-quad/sac-quad_550000_steps",
-                         device="cuda:0")
-    else:
-        env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                simulation_freq=250, control_freq=50,
-                                keep_history=False)
-        model = SAC('MlpPolicy', env, verbose=0,
-                    device='cuda:0')
-        model.learn(total_timesteps=100_000)
-        model.save("rl_models/ppo")
-
-    test_controller(model, t_end, plot=plot, save_plot=save_plot)
-
-
-def test_pid(plot=False, save_plot=False):
-    rollKp = 4.72531916175911
-    rollKi = 3.73086282471387
-    rollKd = 1.49621161575424
-    pitchKp = 3.63871317561002
-    pitchKi = 2.14232438611662
-    pitchKd = 1.54507805402352
-    yawKp = 4.6284037687056
-    yawKi = 2.72501342753779
-    yawKd = 1.96532255856848
-
-    T = 1.0/50
-    limRoll = 1.2568
-    limPitch = 1.2568
-    limYaw = 0.2145
-
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    pid = PID_Controller(rollKp, rollKi, rollKd,
-                         pitchKp, pitchKi, pitchKd,
-                         yawKp, yawKi, yawKd, T,
-                         limRoll, limPitch, limYaw)
-
-    test_controller(pid, t_end, plot=plot, save_plot=save_plot)
-
-
-def compare_all(compare_rl_models=False,
-                plot=False, save_plot=False, loadmodel=False):
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-
-    # Env parameters
-    dynamics_state = np.array([0, 0, 0, 0, 0, 0])
-    custom_u_high = np.array([1, 1, 1])
     constant_reference = np.array([1, 0, 1, 0, 1, 0])
-    set_custom_u_limit = False
-    set_constant_reference = True
-
-    # Controller 1
-
-    rollKp = 4.72531916175911
-    rollKi = 3.73086282471387
-    rollKd = 1.49621161575424
-    pitchKp = 3.63871317561002
-    pitchKi = 2.14232438611662
-    pitchKd = 1.54507805402352
-    yawKp = 4.6284037687056
-    yawKi = 2.72501342753779
-    yawKd = 1.96532255856848
-
-    T = 1.0/50
-    limRoll = 1.2568
-    limPitch = 1.2568
-    limYaw = 0.2145
-
-    pid = PID_Controller(rollKp, rollKi, rollKd,
-                         pitchKp, pitchKi, pitchKd,
-                         yawKp, yawKi, yawKd, T,
-                         limRoll, limPitch, limYaw)
-    # Controller 2
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-
-    lqr = LQR(env)
-
-    # Controller 3
-    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                         simulation_freq=250, control_freq=50,
-                         keep_history=False)
-
-    lqg = LQG(env)
-
-    # Controller 4 and 5
-
-    nonlinear_mpc = Nonlinear_MPC(t_end=t_end,
-                                  n_horizon=int(n_horizon),
-                                  c_step=1/control_freq,
-                                  s_step=1/simulation_freq,
-                                  env=env)
-    linear_mpc = Linear_MPC(t_end=t_end,
-                            n_horizon=int(n_horizon),
-                            c_step=1/control_freq,
-                            s_step=1/simulation_freq,
-                            env=env)
-
-    ddpg_model = ppo_model = sac_model = td3_model = a2c_model = None
-    if compare_rl_models:
-        # Controller 6
-        ddpg_model = DDPG.load(
-            "results/2M_training/saves/ddpg-quad/ddpg-quad_end",
-            device="cuda:0")
-        # Controller 7
-        ppo_model = PPO.load(
-            "results/2M_training/saves/ppo-quad/ppo-quad_end",
-            device="cuda:0")
-        # Controller 8
-        sac_model = SAC.load(
-            "results/2M_training/saves/sac-quad/sac-quad_end",
-            device="cuda:0")
-
-        # Controller 9
-        td3_model = TD3.load(
-            "results/2M_training/saves/td3-quad/td3-quad_end",
-            device="cuda:0")
-        # Controller 10
-        a2c_model = A2C.load(
-            "results/2M_training/saves/a2c-quad/a2c-quad_end",
-            device="cuda:0")
-
-    compare_controllers(dynamics_state,
-                        custom_u_high,
-                        constant_reference,
-                        set_custom_u_limit,
-                        set_constant_reference,
-                        pid,
-                        lqr,
-                        lqg,
-                        nonlinear_mpc,
-                        linear_mpc,
-                        ddpg_model,
-                        ppo_model,
-                        sac_model,
-                        td3_model,
-                        a2c_model,
-                        plot=plot,
-                        save_plot=save_plot)
-
-
-def compare_controller_input_limits(plot=False, save_plot=False,
-                                    loadmodel=False):
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-
-    # Env parameters
-    dynamics_state = np.array([0, 0, 0, 0, 0, 0])
-    custom_u_high = np.array([5, 5, 5])
-    constant_reference = np.array([1, 0, 1, 0, 1, 0])
-    set_custom_u_limit = True
-    set_constant_reference = True
-
-    # Controller 1
-
-    rollKp = 4.72531916175911
-    rollKi = 3.73086282471387
-    rollKd = 1.49621161575424
-    pitchKp = 3.63871317561002
-    pitchKi = 2.14232438611662
-    pitchKd = 1.54507805402352
-    yawKp = 4.6284037687056
-    yawKi = 2.72501342753779
-    yawKd = 1.96532255856848
-
-    T = 1.0/50
-    limRoll = 1.2568
-    limPitch = 1.2568
-    limYaw = 0.2145
-
-    pid = PID_Controller(rollKp, rollKi, rollKd,
-                         pitchKp, pitchKi, pitchKd,
-                         yawKp, yawKi, yawKd, T,
-                         limRoll, limPitch, limYaw)
-    # Controller 2
-
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-
-    lqr = LQR(env)
-
-    # Controller 3
-    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                         simulation_freq=250, control_freq=50,
-                         keep_history=False)
-
-    lqg = LQG(env)
-
-    # Controller 4 and 5
-
-    # start = time.time()
-    # print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    nonlinear_mpc = Nonlinear_MPC(t_end=t_end,
-                                  n_horizon=n_horizon,
-                                  c_step=1/control_freq,
-                                  s_step=1/simulation_freq,
-                                  env=env)
-    linear_mpc = Linear_MPC(t_end=t_end,
-                            n_horizon=n_horizon,
-                            c_step=1/control_freq,
-                            s_step=1/simulation_freq,
-                            env=env)
-
-    compare_controllers(dynamics_state,
-                        custom_u_high,
-                        constant_reference,
-                        set_custom_u_limit,
-                        set_constant_reference,
-                        pid, lqr, lqg, nonlinear_mpc, linear_mpc, plot=plot,
-                        save_plot=save_plot)
-
-
-def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-
-    # Env parameters
-    dynamics_state = np.array([3.14/4, 0, 0, 0, 0, 0])
-    constant_reference = np.array([0, 0, 0, 0, 0, 0])
     custom_u_high = np.array([1, 1, 1])
     set_custom_u_limit = False
     set_constant_reference = True
 
-    # Controller 1
+    c1_env1, c1_env2, c1_env3, c1_env4 =\
+        createEnvs(t_end=t_end,
+                   simulation_freq=simulation_freq,
+                   control_freq=control_freq,
+                   random_state_seed=0,
+                   set_custom_u_limit=set_custom_u_limit,
+                   custom_u_high=custom_u_high,
+                   set_constant_reference=set_constant_reference,
+                   constant_reference=constant_reference)
 
-    rollKp = 4.72531916175911
-    rollKi = 3.73086282471387
-    rollKd = 1.49621161575424
-    pitchKp = 3.63871317561002
-    pitchKi = 2.14232438611662
-    pitchKd = 1.54507805402352
-    yawKp = 4.6284037687056
-    yawKi = 2.72501342753779
-    yawKd = 1.96532255856848
+    c2_env1, c2_env2, c2_env3, c2_env4 =\
+        createEnvs(t_end=t_end,
+                   simulation_freq=simulation_freq,
+                   control_freq=control_freq,
+                   random_state_seed=0,
+                   set_custom_u_limit=set_custom_u_limit,
+                   custom_u_high=custom_u_high,
+                   set_constant_reference=set_constant_reference,
+                   constant_reference=constant_reference)
 
-    T = 1.0/50
-    limRoll = 1.2568
-    limPitch = 1.2568
-    limYaw = 0.2145
+    c3_env1, c3_env2, c3_env3, c3_env4 =\
+        createEnvs(t_end=t_end,
+                   simulation_freq=simulation_freq,
+                   control_freq=control_freq,
+                   random_state_seed=0,
+                   set_custom_u_limit=set_custom_u_limit,
+                   custom_u_high=custom_u_high,
+                   set_constant_reference=set_constant_reference,
+                   constant_reference=constant_reference)
 
-    pid = PID_Controller(rollKp, rollKi, rollKd,
-                         pitchKp, pitchKi, pitchKd,
-                         yawKp, yawKi, yawKd, T,
-                         limRoll, limPitch, limYaw)
-    # Controller 2
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
+    num_episode = 1
+    t1 = time.time()
+    simulate_envs(controller1, c1_env1, c1_env2, c1_env3, c1_env4, num_episode)
+    elapsed1 = time.time() - t1
+    print("Prediction Horizon=10")
+    print("Computation Time: %1.3f sec" % elapsed1)
+    calculateControllerMetrics(c1_env1)
+    t2 = time.time()
+    simulate_envs(controller2, c2_env1, c2_env2, c2_env3, c2_env4, num_episode)
+    elapsed2 = time.time() - t2
+    print("Prediction Horizon=20")
+    print("Computation Time: %1.3f sec" % elapsed2)
+    calculateControllerMetrics(c2_env1)
+    t3 = time.time()
+    simulate_envs(controller3, c3_env1, c3_env2, c3_env3, c3_env4, num_episode)
+    elapsed3 = time.time() - t3
+    print("Prediction Horizon=100")
+    print("Computation Time: %1.3f sec" % elapsed3)
+    calculateControllerMetrics(c3_env1)
 
-    lqr = LQR(env)
-
-    # Controller 3
-    env = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                         simulation_freq=250, control_freq=50,
-                         keep_history=False)
-
-    lqg = LQG(env)
-
-    # Controller 4-5
-
-    # start = time.time()
-    # print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    nonlinear_mpc = Nonlinear_MPC(t_end=t_end,
-                                  n_horizon=n_horizon,
-                                  c_step=1/control_freq,
-                                  s_step=1/simulation_freq,
-                                  env=env)
-
-    linear_mpc = Linear_MPC(t_end=t_end,
-                            n_horizon=int(n_horizon),
-                            c_step=1/control_freq,
-                            s_step=1/simulation_freq,
-                            env=env)
-
-    compare_controllers(dynamics_state,
-                        custom_u_high,
-                        constant_reference,
-                        set_custom_u_limit,
-                        set_constant_reference,
-                        pid, lqr, lqg, nonlinear_mpc, linear_mpc, plot=plot,
-                        save_plot=save_plot)
-
-
-def compare_parameters(plot=False, save_plot=False, loadmodel=False):
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    t_end = 5
-    env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                            simulation_freq=250, control_freq=50,
-                            keep_history=False)
-
-    # Controller 1
-    nonlinear_mpc1 = Nonlinear_MPC(t_end=t_end,
-                                   n_horizon=int(n_horizon/2),
-                                   c_step=1/control_freq,
-                                   s_step=1/simulation_freq,
-                                   env=env)
-
-    # Controller 2
-    nonlinear_mpc2 = Nonlinear_MPC(t_end=t_end,
-                                   n_horizon=n_horizon,
-                                   c_step=1/control_freq,
-                                   s_step=1/simulation_freq,
-                                   env=env)
-    # Controller 3
-    nonlinear_mpc3 = Nonlinear_MPC(t_end=t_end,
-                                   n_horizon=int(n_horizon*5),
-                                   c_step=1/control_freq,
-                                   s_step=1/simulation_freq,
-                                   env=env)
-
-    compare_controller_parameters(nonlinear_mpc1, nonlinear_mpc2,
-                                  nonlinear_mpc3, plot=plot,
-                                  save_plot=save_plot)
-
-
-def test_all_environments_open_loop(plot=False, save_plot=False):
-    class DummyController:
-        def __init__(self):
-            pass
-
-        # State is the 6 dimensional vector(6,) which holds the
-        # reference minus the current state information
-        def predict(self, state_error, deterministic=True):
-            return np.array([0, 0, 0])
-
-    print("*** Function: ", sys._getframe().f_code.co_name, "***")
-    t_end = 5
-    dummyController = DummyController()
-    test_controller(dummyController, t_end, plot=plot, save_plot=save_plot)
-
-
-def createEnvs(t_end, simulation_freq,
-               control_freq, random_state_seed,
-               set_custom_u_limit,
-               custom_u_high,
-               set_constant_reference,
-               constant_reference,
-               dynamics_state=np.array([3.14/4, 0, 0, 0, 0, 0]),
-               eval_env=True):
-
-    # Linear deterministic quadcopter
-    env1 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                             simulation_freq=simulation_freq,
-                             control_freq=control_freq, random_state_seed=0,
-                             dynamics_state=dynamics_state,
-                             set_custom_u_limit=set_custom_u_limit,
-                             custom_u_high=custom_u_high,
-                             set_constant_reference=True,
-                             constant_reference=constant_reference,
-                             eval_env=eval_env)
-    # Linear stochastic quadcopter
-    env2 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                          simulation_freq=simulation_freq,
-                          control_freq=control_freq, random_state_seed=0,
-                          dynamics_state=dynamics_state,
-                          set_custom_u_limit=set_custom_u_limit,
-                          custom_u_high=custom_u_high,
-                          set_constant_reference=True,
-                          constant_reference=constant_reference,
-                          eval_env=eval_env)
-    # Nonlinear deterministic quadcopter
-    env3 = DeterministicQuad(nonlinear_quad_dynamics, t_end=t_end,
-                             simulation_freq=simulation_freq,
-                             control_freq=control_freq, random_state_seed=0,
-                             dynamics_state=dynamics_state,
-                             set_custom_u_limit=set_custom_u_limit,
-                             custom_u_high=custom_u_high,
-                             set_constant_reference=True,
-                             constant_reference=constant_reference,
-                             eval_env=eval_env)
-    # Nonlinear stochastic quadcopter
-    env4 = StochasticQuad(nonlinear_quad_dynamics, t_end=t_end,
-                          simulation_freq=simulation_freq,
-                          control_freq=control_freq, random_state_seed=0,
-                          dynamics_state=dynamics_state,
-                          set_custom_u_limit=set_custom_u_limit,
-                          custom_u_high=custom_u_high,
-                          set_constant_reference=True,
-                          constant_reference=constant_reference,
-                          eval_env=eval_env)
-    return env1, env2, env3, env4
+    if plot:
+        plotter = Plotter(type(controller1).__name__ +
+                          '-' + type(controller2).__name__ +
+                          '-' + type(controller3).__name__)
+        plotter.plot_compare_parameters(
+                                           c1_env1, c1_env2, c1_env3, c1_env4,
+                                           c2_env1, c2_env2, c2_env3, c2_env4,
+                                           c3_env1, c3_env2, c3_env3, c3_env4,
+                                           save_plot=save_plot)
+        if plot:
+            plotter.show()
 
 
 def compare_controllers(dynamics_state,
@@ -524,6 +145,9 @@ def compare_controllers(dynamics_state,
         c10_env3 = c10_env4 = None
 
     num_episode = 1
+    control_freq = 50
+    simulation_freq = 250
+    t_end = 5
 
     if controller1 is not None:
         c1_env1, c1_env2, c1_env3, c1_env4 =\
@@ -943,113 +567,6 @@ def compare_controllers(dynamics_state,
             plotter.show()
 
 
-def compare_controller_parameters(controller1, controller2, controller3,
-                                  plot=False, save_plot=False):
-
-    constant_reference = np.array([1, 0, 1, 0, 1, 0])
-    custom_u_high = np.array([1, 1, 1])
-    set_custom_u_limit = False
-    set_constant_reference = True
-
-    c1_env1, c1_env2, c1_env3, c1_env4 =\
-        createEnvs(t_end=t_end,
-                   simulation_freq=simulation_freq,
-                   control_freq=control_freq,
-                   random_state_seed=0,
-                   set_custom_u_limit=set_custom_u_limit,
-                   custom_u_high=custom_u_high,
-                   set_constant_reference=set_constant_reference,
-                   constant_reference=constant_reference)
-
-    c2_env1, c2_env2, c2_env3, c2_env4 =\
-        createEnvs(t_end=t_end,
-                   simulation_freq=simulation_freq,
-                   control_freq=control_freq,
-                   random_state_seed=0,
-                   set_custom_u_limit=set_custom_u_limit,
-                   custom_u_high=custom_u_high,
-                   set_constant_reference=set_constant_reference,
-                   constant_reference=constant_reference)
-
-    c3_env1, c3_env2, c3_env3, c3_env4 =\
-        createEnvs(t_end=t_end,
-                   simulation_freq=simulation_freq,
-                   control_freq=control_freq,
-                   random_state_seed=0,
-                   set_custom_u_limit=set_custom_u_limit,
-                   custom_u_high=custom_u_high,
-                   set_constant_reference=set_constant_reference,
-                   constant_reference=constant_reference)
-
-    num_episode = 1
-    t1 = time.time()
-    simulate_envs(controller1, c1_env1, c1_env2, c1_env3, c1_env4, num_episode)
-    elapsed1 = time.time() - t1
-    print("Prediction Horizon=10")
-    print("Computation Time: %1.3f sec" % elapsed1)
-    calculateControllerMetrics(c1_env1)
-    t2 = time.time()
-    simulate_envs(controller2, c2_env1, c2_env2, c2_env3, c2_env4, num_episode)
-    elapsed2 = time.time() - t2
-    print("Prediction Horizon=20")
-    print("Computation Time: %1.3f sec" % elapsed2)
-    calculateControllerMetrics(c2_env1)
-    t3 = time.time()
-    simulate_envs(controller3, c3_env1, c3_env2, c3_env3, c3_env4, num_episode)
-    elapsed3 = time.time() - t3
-    print("Prediction Horizon=100")
-    print("Computation Time: %1.3f sec" % elapsed3)
-    calculateControllerMetrics(c3_env1)
-
-    if plot:
-        plotter = Plotter(type(controller1).__name__ +
-                          '-' + type(controller2).__name__ +
-                          '-' + type(controller3).__name__)
-        plotter.plot_compare_parameters(
-                                           c1_env1, c1_env2, c1_env3, c1_env4,
-                                           c2_env1, c2_env2, c2_env3, c2_env4,
-                                           c3_env1, c3_env2, c3_env3, c3_env4,
-                                           save_plot=save_plot)
-        if plot:
-            plotter.show()
-
-
-def test_controller(controller, t_end, plot=False, save_plot=False,
-                    constant_reference=None):
-
-    if constant_reference is None:
-        constant_reference = np.array([1, 0, 1, 0, 1, 0])
-    custom_u_high = np.array([0.1, 0.1, 0.1])
-
-    env1, env2, env3, env4 =\
-        createEnvs(t_end=t_end,
-                   simulation_freq=simulation_freq,
-                   control_freq=control_freq,
-                   random_state_seed=0,
-                   set_custom_u_limit=False,
-                   custom_u_high=custom_u_high,
-                   set_constant_reference=True,
-                   constant_reference=constant_reference)
-
-    num_episode = 1
-    simulate_envs(controller, env1, env2, env3, env4, num_episode)
-    calculateControllerMetrics(env1)
-
-    if plot:
-        plotter = Plotter(type(controller).__name__)
-        plotter.plot_only_specific_element(env1, env2, env3, env4,
-                                           save_plot=save_plot)
-        plotter.plot_only_specific_element(env1, env2, env3, env4,
-                                           save_plot=save_plot, axis=1)
-        plotter.plot_all_with_reference(env1, env2, env3, env4,
-                                        save_plot=save_plot)
-        plotter.plot_reward(env1, env2, env3, env4, save_plot=save_plot)
-        plotter.plot_actions(env1, env2, env3, env4, save_plot=save_plot)
-        if plot:
-            plotter.show()
-    return env1, env2, env3, env4
-
-
 def calculateControllerMetrics(env):
     resp_final = env.history.sol_x[0][-1]
     tol = 5e-2
@@ -1135,22 +652,92 @@ def simulate_envs(controller, env1, env2, env3, env4, num_episode):
             obs, reward, done, _ = env4.step(action)
 
 
-if __name__ == '__main__':
-    # from unit_tests import unittest_main
-    # unittest_main()
+def createEnvs(t_end, simulation_freq,
+               control_freq, random_state_seed,
+               set_custom_u_limit,
+               custom_u_high,
+               set_constant_reference,
+               constant_reference,
+               dynamics_state=np.array([3.14/4, 0, 0, 0, 0, 0]),
+               eval_env=True):
 
-    # test_all_environments_open_loop(plot=True, save_plot=False)
-    # test_pid(plot=True, save_plot=False)
-    # test_lqr(plot=True, save_plot=False, loadmodel=False)
-    # test_lqg(plot=True, save_plot=False, loadmodel=False)
-    # test_NonlinearMPC(plot=True, save_plot=False)
-    # test_LinearMPC(plot=True, save_plot=False)
-    # test_rl(plot=True, save_plot=False, loadmodel=True)
-    # test_sac(plot=True, save_plot=False, loadmodel=True)
+    # Linear deterministic quadcopter
+    env1 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
+                             simulation_freq=simulation_freq,
+                             control_freq=control_freq, random_state_seed=0,
+                             dynamics_state=dynamics_state,
+                             set_custom_u_limit=set_custom_u_limit,
+                             custom_u_high=custom_u_high,
+                             set_constant_reference=True,
+                             constant_reference=constant_reference,
+                             eval_env=eval_env)
+    # Linear stochastic quadcopter
+    env2 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
+                          simulation_freq=simulation_freq,
+                          control_freq=control_freq, random_state_seed=0,
+                          dynamics_state=dynamics_state,
+                          set_custom_u_limit=set_custom_u_limit,
+                          custom_u_high=custom_u_high,
+                          set_constant_reference=True,
+                          constant_reference=constant_reference,
+                          eval_env=eval_env)
+    # Nonlinear deterministic quadcopter
+    env3 = DeterministicQuad(nonlinear_quad_dynamics, t_end=t_end,
+                             simulation_freq=simulation_freq,
+                             control_freq=control_freq, random_state_seed=0,
+                             dynamics_state=dynamics_state,
+                             set_custom_u_limit=set_custom_u_limit,
+                             custom_u_high=custom_u_high,
+                             set_constant_reference=True,
+                             constant_reference=constant_reference,
+                             eval_env=eval_env)
+    # Nonlinear stochastic quadcopter
+    env4 = StochasticQuad(nonlinear_quad_dynamics, t_end=t_end,
+                          simulation_freq=simulation_freq,
+                          control_freq=control_freq, random_state_seed=0,
+                          dynamics_state=dynamics_state,
+                          set_custom_u_limit=set_custom_u_limit,
+                          custom_u_high=custom_u_high,
+                          set_constant_reference=True,
+                          constant_reference=constant_reference,
+                          eval_env=eval_env)
+    return env1, env2, env3, env4
 
-    compare_all(compare_rl_models=False,
-                plot=True, save_plot=False, loadmodel=False)
-    # compare_controller_input_limits(plot=True, save_plot=False,
-    #                                 loadmodel=False)
-    # compare_parameters(plot=True, save_plot=False, loadmodel=False)
-    # compare_initial_conditions(plot=True, save_plot=False, loadmodel=False)
+
+def test_controller(controller, t_end, plot=False, save_plot=False,
+                    constant_reference=None):
+    control_freq = 50
+    simulation_freq = 250
+    t_end = 5
+
+    if constant_reference is None:
+        constant_reference = np.array([1, 0, 1, 0, 1, 0])
+    custom_u_high = np.array([0.1, 0.1, 0.1])
+
+    env1, env2, env3, env4 =\
+        createEnvs(t_end=t_end,
+                   simulation_freq=simulation_freq,
+                   control_freq=control_freq,
+                   random_state_seed=0,
+                   set_custom_u_limit=False,
+                   custom_u_high=custom_u_high,
+                   set_constant_reference=True,
+                   constant_reference=constant_reference)
+
+    num_episode = 1
+    simulate_envs(controller, env1, env2, env3, env4, num_episode)
+    calculateControllerMetrics(env1)
+
+    if plot:
+        plotter = Plotter(type(controller).__name__)
+        plotter.plot_only_specific_element(env1, env2, env3, env4,
+                                           save_plot=save_plot)
+        plotter.plot_only_specific_element(env1, env2, env3, env4,
+                                           save_plot=save_plot, axis=1)
+        plotter.plot_all_with_reference(env1, env2, env3, env4,
+                                        save_plot=save_plot)
+        plotter.plot_reward(env1, env2, env3, env4, save_plot=save_plot)
+        plotter.plot_actions(env1, env2, env3, env4, save_plot=save_plot)
+        if plot:
+            plotter.show()
+    return env1, env2, env3, env4

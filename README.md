@@ -436,7 +436,17 @@ To run the test codes, please execute this command:
 ```bash
 cd quad_rotational_simulation
 conda activate quadsim
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/controllers/hsl/lib"
-python test.py
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"
+python tests/unit_tests.py
+python tests/test_pid.py
+python tests/test_lqr.py
+python tests/test_lqg.py
+python tests/test_mpc_linear.py
+python tests/test_mpc_nonlinear.py
+python tests/test_rl_a2c.py
+python tests/test_rl_td3.py
+python tests/test_rl_ppo.py
+python tests/test_rl_ddpg.py
+python tests/test_rl_sac.py
 ```
 

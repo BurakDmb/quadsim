@@ -1,11 +1,13 @@
 import unittest
 import numpy as np
+import sys
+sys.path.insert(0, './')
 
 
 class TestEnvironments(unittest.TestCase):
     def test_lqr(self):
-        from controllers.lqr import LQR
-        from envs.quad import DeterministicQuad, linear_quad_dynamics
+        from src.controllers.lqr import LQR
+        from src.envs.quad import DeterministicQuad, linear_quad_dynamics
         t_end = 5
         control_freq = 50
         env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
@@ -42,7 +44,7 @@ class TestEnvironments(unittest.TestCase):
             q.put(env)
             return
 
-        from envs.quad import DeterministicQuad, linear_quad_dynamics
+        from src.envs.quad import DeterministicQuad, linear_quad_dynamics
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
@@ -139,7 +141,7 @@ class TestEnvironments(unittest.TestCase):
             q.put(env)
             return
 
-        from envs.quad import StochasticQuad, linear_quad_dynamics
+        from src.envs.quad import StochasticQuad, linear_quad_dynamics
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
@@ -163,24 +165,24 @@ class TestEnvironments(unittest.TestCase):
 
         controller1 = DummyController1()
         env1 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+                              simulation_freq=250,
+                              control_freq=control_freq,
+                              keep_history=True)
         controller2 = DummyController2()
         env2 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+                              simulation_freq=250,
+                              control_freq=control_freq,
+                              keep_history=True)
         controller3 = DummyController3()
         env3 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+                              simulation_freq=250,
+                              control_freq=control_freq,
+                              keep_history=True)
         controller4 = DummyController4()
         env4 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+                              simulation_freq=250,
+                              control_freq=control_freq,
+                              keep_history=True)
         q1 = Queue()
         q2 = Queue()
         q3 = Queue()
@@ -237,24 +239,37 @@ def evalSolutionHist(self_obj, env, num_episode, t_end, control_freq):
     expected_ref_shape = (6, num_episode * t_end * control_freq)
     expected_x_shape = (6, num_episode * t_end * control_freq)
 
-    self_obj.assertGreaterEqual(env.high[0] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[0, :].max()),
-                                               abs(sol_x[0, :].min()))))
-    self_obj.assertGreaterEqual(env.high[1] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[1, :].max()),
-                                               abs(sol_x[1, :].min()))))
-    self_obj.assertGreaterEqual(env.high[2] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[2, :].max()),
-                                               abs(sol_x[2, :].min()))))
-    self_obj.assertGreaterEqual(env.high[3] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[3, :].max()),
-                                               abs(sol_x[3, :].min()))))
-    self_obj.assertGreaterEqual(env.high[4] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[4, :].max()),
-                                               abs(sol_x[4, :].min()))))
-    self_obj.assertGreaterEqual(env.high[5] + (num_episode * t_end * control_freq * env.noise_w_variance if hasattr(env, 'noise_w_variance') else 0),
-                                np.float32(max(abs(sol_x[5, :].max()),
-                                               abs(sol_x[5, :].min()))))
+    self_obj.assertGreaterEqual(
+        env.high[0] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[0, :].max()), abs(sol_x[0, :].min()))))
+
+    self_obj.assertGreaterEqual(
+        env.high[1] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[1, :].max()), abs(sol_x[1, :].min()))))
+    self_obj.assertGreaterEqual(
+        env.high[2] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[2, :].max()), abs(sol_x[2, :].min()))))
+    self_obj.assertGreaterEqual(
+        env.high[3] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[3, :].max()), abs(sol_x[3, :].min()))))
+    self_obj.assertGreaterEqual(
+        env.high[4] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[4, :].max()), abs(sol_x[4, :].min()))))
+    self_obj.assertGreaterEqual(
+        env.high[5] + (
+            num_episode * t_end * control_freq * env.noise_w_variance
+            if hasattr(env, 'noise_w_variance') else 0),
+        np.float32(max(abs(sol_x[5, :].max()), abs(sol_x[5, :].min()))))
 
     self_obj.assertEqual(expected_ref_shape, sol_ref.shape)
     self_obj.assertEqual(expected_x_shape, sol_x.shape)

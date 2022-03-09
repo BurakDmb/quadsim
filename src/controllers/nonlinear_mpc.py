@@ -1,10 +1,7 @@
-# Import do_mpc package:
 import do_mpc
 
-
-# Add do_mpc to path. This is not necessary if it was installed via pip.
-import sys
-sys.path.append('../../')
+from scripts.utils import check_mpc_hsl_solver_in_path  # noqa: E402
+check_mpc_hsl_solver_in_path()
 
 
 # from casadi import *

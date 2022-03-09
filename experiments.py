@@ -1,13 +1,15 @@
 def experiment1():
-    from test import compare_pid_lqr_nlmpc
+    from scripts.compare_all import compare_all
     print("---------------------------------------------------------------")
     print("Experiment 1")
     print("---------------------------------------------------------------")
-    compare_pid_lqr_nlmpc(plot=True, save_plot=False, loadmodel=False)
+    compare_all(compare_rl_models=False,
+                plot=True, save_plot=False, loadmodel=True)
 
 
 def experiment2():
-    from test import compare_controller_input_limits
+    from scripts.compare_controller_input_limits \
+        import compare_controller_input_limits
     print("---------------------------------------------------------------")
     print("Experiment 2")
     print("---------------------------------------------------------------")
@@ -16,7 +18,7 @@ def experiment2():
 
 
 def experiment4():
-    from test import compare_initial_conditions
+    from scripts.compare_initial_conditions import compare_initial_conditions
     print("---------------------------------------------------------------")
     print("Experiment 4")
     print("---------------------------------------------------------------")
@@ -24,7 +26,7 @@ def experiment4():
 
 
 def experiment5():
-    from test import compare_parameters
+    from scripts.compare_parameters import compare_parameters
     print("---------------------------------------------------------------")
     print("Experiment 5")
     print("---------------------------------------------------------------")
@@ -32,7 +34,7 @@ def experiment5():
 
 
 if __name__ == '__main__':
-    from unit_tests import unittest_main
+    from tests.unit_tests import unittest_main
     unittest_main()
     experiment1()
     # experiment2()
