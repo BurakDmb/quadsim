@@ -1,8 +1,8 @@
 import sys
 import torch.multiprocessing as mp
-from UtilStableAgents import train_ddpg_agent, train_ppo_agent
-from UtilStableAgents import train_sac_agent, train_td3_agent
-from UtilStableAgents import train_a2c_agent
+from src.UtilStableAgents import train_ddpg_agent, train_ppo_agent
+from src.UtilStableAgents import train_sac_agent, train_td3_agent
+from src.UtilStableAgents import train_a2c_agent
 
 if __name__ == '__main__':
     from parameters import number_of_parallel_experiments
