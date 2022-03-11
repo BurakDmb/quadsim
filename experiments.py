@@ -1,10 +1,10 @@
 def experiment1():
-    from scripts.compare_all import compare_all
+    from scripts.experiment1_compare_all import experiment1_compare_all
     print("---------------------------------------------------------------")
     print("Experiment 1")
     print("---------------------------------------------------------------")
-    compare_all(compare_rl_models=False,
-                plot=True, save_plot=False, loadmodel=True)
+    experiment1_compare_all(compare_rl_models=False,
+                            plot=True, save_plot=False, loadmodel=True)
 
 
 def experiment2():

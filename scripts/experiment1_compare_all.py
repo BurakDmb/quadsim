@@ -28,8 +28,8 @@ from tests.constants import n_horizon, \
 from scripts.utils import compare_controllers  # noqa: E402
 
 
-def compare_all(compare_rl_models=False,
-                plot=False, save_plot=False, loadmodel=False):
+def experiment1_compare_all(compare_rl_models=False,
+                            plot=False, save_plot=False, loadmodel=False):
     print("*** Function: ", sys._getframe().f_code.co_name, "***")
 
     # Env parameters
@@ -125,5 +125,5 @@ def compare_all(compare_rl_models=False,
 
 
 if __name__ == '__main__':
-    compare_all(compare_rl_models=False,
-                plot=True, save_plot=False, loadmodel=False)
+    experiment1_compare_all(compare_rl_models=False,
+                            plot=True, save_plot=False, loadmodel=False)

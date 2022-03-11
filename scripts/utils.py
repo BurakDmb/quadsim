@@ -78,6 +78,8 @@ def compare_controller_parameters(controller1, controller2, controller3,
     t1 = time.time()
     simulate_envs(controller1, c1_env1, c1_env2, c1_env3, c1_env4, num_episode)
     elapsed1 = time.time() - t1
+
+    # TODO: Dynamically print prediction horizon
     print("Prediction Horizon=10")
     print("Computation Time: %1.3f sec" % elapsed1)
     calculateControllerMetrics(c1_env1)
