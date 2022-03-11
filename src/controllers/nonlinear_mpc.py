@@ -1,10 +1,10 @@
+# Credit: Şevket Utku Aydınlı, Aselsan
 import do_mpc
 
-from scripts.utils import check_mpc_hsl_solver_in_path  # noqa: E402
+from scripts.utils import check_mpc_hsl_solver_in_path
 check_mpc_hsl_solver_in_path()
 
 
-# from casadi import *
 class Nonlinear_MPC:
     def __init__(self, t_end, n_horizon, c_step, s_step, env):
         # Model Paremeters
