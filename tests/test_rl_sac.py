@@ -25,7 +25,7 @@ def test_sac(plot=False, save_plot=False, loadmodel=False):
         model = SAC('MlpPolicy', env, verbose=0,
                     device='cuda:0')
         model.learn(total_timesteps=100_000)
-        model.save("rl_models/ppo")
+        model.save("rl_models/sac")
 
     test_controller(model, t_end, plot=plot, save_plot=save_plot)
 

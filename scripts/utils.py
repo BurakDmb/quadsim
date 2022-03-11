@@ -116,7 +116,7 @@ def compare_controllers(dynamics_state,
                         controller2,
                         controller3,
                         controller4,
-                        controller5=None,
+                        controller5,
                         controller6=None,
                         controller7=None,
                         controller8=None,
@@ -190,8 +190,6 @@ def compare_controllers(dynamics_state,
         calculateControllerMetrics(c2_env1)
         print("Env3: ")
         calculateControllerMetrics(c2_env3)
-
-    # TODO :Change Controller Names
 
     if controller3 is not None:
         c3_env1, c3_env2, c3_env3, c3_env4 =\

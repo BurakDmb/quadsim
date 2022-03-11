@@ -81,7 +81,7 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
         U = np.array([u, ]*x_shape).transpose()
     else:
         U = np.array(u)
-    dxdt = np.dot(A, x) + np.dot(B, U) 
+    dxdt = np.dot(A, x) + np.dot(B, U)
     if wk is not None:
         dxdt += np.dot(G, wk)
     return dxdt
@@ -492,18 +492,15 @@ class StochasticQuad(DeterministicQuad):
 
         # Randomly generating process and measurement noise
         wk = self.rnd_noise_wk.normal(self.noise_w_mean, self.noise_w_variance,
-                                      self.dynamics_len).reshape(-1,1)
+                                      self.dynamics_len).reshape(-1, 1)
         vk = self.rnd_noise_vk.normal(self.noise_v_mean, self.noise_v_variance,
-                                      self.dynamics_len).reshape(-1,1)
+                                      self.dynamics_len).reshape(-1, 1)
 
         # Execute one time step within the environment
         self.current_time = self.current_timestep * self.control_timestep
         time_range = (self.current_time,
                       self.current_time + self.control_timestep)
 
-        # TODO remove wk in here and add it in xk+1 function.
-        # action_clipped = np.maximum(np.minimum(action+wk, self.u_max),
-        #                             -self.u_max)
         action_clipped = np.maximum(np.minimum(action, self.u_max),
                                     -self.u_max)
 
@@ -530,7 +527,7 @@ class StochasticQuad(DeterministicQuad):
 
         # Adding the measurement noise to the observation
         # Flatten is used to convert 6,1 matrix to 6, vector.
-        next_obs = next_state + np.dot(H,vk).flatten()
+        next_obs = next_state + np.dot(H, vk).flatten()
         # TODO add H
 
         # Mapping the observation values to -pi, pi
