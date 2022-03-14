@@ -1,13 +1,12 @@
 import sys
-# sys.path.insert(0, '../../')
 
-from quadsim.src.controllers.pid import PID_Controller  # noqa: E402
-from quadsim.scripts.utils import test_controller  # noqa: E402
-from quadsim.tests.constants import t_end  # noqa: E402
+from quadsim.src.controllers.pid import PID_Controller
+from quadsim.scripts.utils import test_controller
+from quadsim.tests.constants import t_end
 
 from quadsim.tests.constants import rollKp, rollKi, rollKd,\
     pitchKp, pitchKi, pitchKd,\
-    yawKp, yawKi, yawKd, T, limRoll, limPitch, limYaw  # noqa: E402
+    yawKp, yawKi, yawKd, T, limRoll, limPitch, limYaw
 
 
 def test_pid(plot=True, save_plot=False):

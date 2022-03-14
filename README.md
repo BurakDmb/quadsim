@@ -456,4 +456,4 @@ python tests/test_rl_ppo.py
 python tests/test_rl_ddpg.py
 python tests/test_rl_sac.py
 ```
-Note: These test codes provides simple examples to the users, algorithms are not optimized and even tuned for optimal control. Users are encouraged to use their own control algorithms in the simulation.
+Note: These test codes provides simple examples to the users, algorithms are not optimized and even not tuned for optimal control. Users are encouraged to use their own control algorithms in the simulation.

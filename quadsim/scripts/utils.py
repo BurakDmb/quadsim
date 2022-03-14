@@ -1,17 +1,15 @@
 import numpy as np
 import os
 
-from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
-from quadsim.src.envs.quad import StochasticQuad  # noqa: E402
-from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
-from quadsim.src.envs.quad import nonlinear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad
+from quadsim.src.envs.quad import StochasticQuad
+from quadsim.src.envs.quad import linear_quad_dynamics
+from quadsim.src.envs.quad import nonlinear_quad_dynamics
 
-from quadsim.src.plotter import Plotter  # noqa: E402
+from quadsim.src.plotter import Plotter
 
 
 # Note that before running, these LD Library Path needs to be configured
-# Run this command in your terminal
-# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"
 def check_mpc_hsl_solver_in_path():
     # os.path.dirname(os.path.abspath(__file__)) +
     hsl_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) +

@@ -1,12 +1,11 @@
 import sys
-sys.path.insert(0, './')
 
-from quadsim.src.controllers.lqr import LQR  # noqa: E402
-from quadsim.scripts.utils import test_controller  # noqa: E402
-from quadsim.tests.constants import t_end  # noqa: E402
+from quadsim.src.controllers.lqr import LQR
+from quadsim.scripts.utils import test_controller
+from quadsim.tests.constants import t_end
 
-from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
-from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad
+from quadsim.src.envs.quad import linear_quad_dynamics
 
 
 def test_lqr(plot=False, save_plot=False, loadmodel=False):

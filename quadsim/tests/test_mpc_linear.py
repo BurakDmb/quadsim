@@ -1,15 +1,14 @@
 import sys
-sys.path.insert(0, './')
 
-from quadsim.src.controllers.linear_mpc import Linear_MPC  # noqa: E402
-from quadsim.scripts.utils import test_controller  # noqa: E402
+from quadsim.src.controllers.linear_mpc import Linear_MPC
+from quadsim.scripts.utils import test_controller
 from quadsim.tests.constants import n_horizon, \
-    control_freq, simulation_freq, t_end  # noqa: E402
+    control_freq, simulation_freq, t_end
 
 
-from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
-from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
-import time  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad
+from quadsim.src.envs.quad import linear_quad_dynamics
+import time
 
 
 def test_LinearMPC(plot=False, save_plot=False, loadmodel=False):
