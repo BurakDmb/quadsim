@@ -6,8 +6,9 @@ sys.path.insert(0, './')
 
 class TestEnvironments(unittest.TestCase):
     def test_lqr(self):
-        from src.controllers.lqr import LQR
-        from src.envs.quad import DeterministicQuad, linear_quad_dynamics
+        from quadsim.src.controllers.lqr import LQR
+        from quadsim.src.envs.quad import DeterministicQuad
+        from quadsim.src.envs.quad import linear_quad_dynamics
         t_end = 5
         control_freq = 50
         env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
@@ -44,7 +45,8 @@ class TestEnvironments(unittest.TestCase):
             q.put(env)
             return
 
-        from src.envs.quad import DeterministicQuad, linear_quad_dynamics
+        from quadsim.src.envs.quad import DeterministicQuad
+        from quadsim.src.envs.quad import linear_quad_dynamics
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
@@ -141,7 +143,7 @@ class TestEnvironments(unittest.TestCase):
             q.put(env)
             return
 
-        from src.envs.quad import StochasticQuad, linear_quad_dynamics
+        from quadsim.src.envs.quad import StochasticQuad, linear_quad_dynamics
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):

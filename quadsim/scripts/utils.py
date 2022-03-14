@@ -5,20 +5,24 @@ import os
 import sys
 sys.path.insert(0, './')
 
-from src.envs.quad import DeterministicQuad  # noqa: E402
-from src.envs.quad import StochasticQuad  # noqa: E402
-from src.envs.quad import linear_quad_dynamics  # noqa: E402
-from src.envs.quad import nonlinear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
+from quadsim.src.envs.quad import StochasticQuad  # noqa: E402
+from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import nonlinear_quad_dynamics  # noqa: E402
 
-from src.plotter import Plotter  # noqa: E402
+from quadsim.src.plotter import Plotter  # noqa: E402
 
 
 # Note that before running, these LD Library Path needs to be configured
 # Run this command in your terminal
 # export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"
 def check_mpc_hsl_solver_in_path():
+    # os.path.dirname(os.path.abspath(__file__)) +
+    hsl_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) +
+                               "/../src/controllers/hsl/lib")
+
     if not any(
-        os.getcwd()+"/src/controllers/hsl/lib" in x
+        hsl_path in x
             for x in os.environ['LD_LIBRARY_PATH'].split(':')):
 
         print("MPC HSL Solver in LD_LIBRARY_PATH does not found.")
@@ -26,9 +30,10 @@ def check_mpc_hsl_solver_in_path():
             "Please run this command in terminal at " +
             "working directory root folder:"
             )
+        print(hsl_path)
         print(
             r'export LD_LIBRARY_PATH=' +
-            r'"$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"')
+            r'"$LD_LIBRARY_PATH:' + hsl_path + r'"')
         exit(1)
 
 

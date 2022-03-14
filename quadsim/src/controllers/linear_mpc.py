@@ -1,7 +1,7 @@
 # Credit: Şevket Utku Aydınlı, Aselsan
 import do_mpc
 
-from scripts.utils import check_mpc_hsl_solver_in_path  # noqa: E402
+from quadsim.scripts.utils import check_mpc_hsl_solver_in_path  # noqa: E402
 check_mpc_hsl_solver_in_path()
 
 

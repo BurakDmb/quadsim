@@ -436,11 +436,20 @@ To run the test codes, please execute this command:
 ```bash
 cd quad_rotational_simulation
 conda activate quadsim
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/src/controllers/hsl/lib"
+
+# Install quadsim as a package which can be imported in anywhere.
+# Please note that if you change the source code,
+# you need to re-install the package by executing the command below.
+python setup.py install --user
+
+# Running example test codes.
 python tests/unit_tests.py
 python tests/test_pid.py
 python tests/test_lqr.py
 python tests/test_lqg.py
+# Note that you need to add quadsim/src/controllers/hsl/lib directory to LD_LIBRARY_PATH to run MPC controllers.
+# MPC algorithm will automatically check that lib directory is exported to the LD_LIBRARY_PATH.
+# Quadsim will also give the exact command to export in the command line if you execute mpc code before exporting.
 python tests/test_mpc_linear.py
 python tests/test_mpc_nonlinear.py
 python tests/test_rl_a2c.py

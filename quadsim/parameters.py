@@ -1,4 +1,4 @@
-from src.envs.quad import DeterministicQuad, linear_quad_dynamics
+from quadsim.src.envs.quad import DeterministicQuad, linear_quad_dynamics
 import numpy as np
 
 

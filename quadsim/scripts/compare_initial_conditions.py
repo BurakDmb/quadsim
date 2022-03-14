@@ -3,13 +3,13 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from src.controllers.pid import PID_Controller  # noqa: E402
+from quadsim.src.controllers.pid import PID_Controller  # noqa: E402
 
-from src.controllers.lqr import LQR  # noqa: E402
-from src.controllers.lqg import LQG  # noqa: E402
+from quadsim.src.controllers.lqr import LQR  # noqa: E402
+from quadsim.src.controllers.lqg import LQG  # noqa: E402
 
-from src.controllers.linear_mpc import Linear_MPC  # noqa: E402
-from src.controllers.nonlinear_mpc import Nonlinear_MPC  # noqa: E402
+from quadsim.src.controllers.linear_mpc import Linear_MPC  # noqa: E402
+from quadsim.src.controllers.nonlinear_mpc import Nonlinear_MPC  # noqa: E402
 
 # from stable_baselines3 import PPO  # noqa: E402
 # from stable_baselines3 import SAC  # noqa: E402
@@ -18,14 +18,14 @@ from src.controllers.nonlinear_mpc import Nonlinear_MPC  # noqa: E402
 # from stable_baselines3 import DDPG  # noqa: E402
 
 
-from src.envs.quad import DeterministicQuad  # noqa: E402
-from src.envs.quad import StochasticQuad  # noqa: E402
-from src.envs.quad import linear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
+from quadsim.src.envs.quad import StochasticQuad  # noqa: E402
+from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
 
-from tests.constants import n_horizon, \
+from quadsim.tests.constants import n_horizon, \
     control_freq, simulation_freq, t_end  # noqa: E402
 
-from scripts.utils import compare_controllers  # noqa: E402
+from quadsim.scripts.utils import compare_controllers  # noqa: E402
 
 
 def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
@@ -40,8 +40,8 @@ def compare_initial_conditions(plot=False, save_plot=False, loadmodel=False):
 
     # Controller 1
 
-    from tests.constants import rollKp, rollKi, rollKd, pitchKp, pitchKi,\
-        pitchKd, yawKp, yawKi, yawKd,\
+    from quadsim.tests.constants import rollKp, rollKi, rollKd, pitchKp,\
+        pitchKi, pitchKd, yawKp, yawKi, yawKd,\
         T, limRoll, limPitch, limYaw  # noqa: E402
 
     pid = PID_Controller(rollKp, rollKi, rollKd,

@@ -1,13 +1,13 @@
 import sys
 sys.path.insert(0, './')
 
-from src.controllers.nonlinear_mpc import Nonlinear_MPC  # noqa: E402
-from scripts.utils import test_controller  # noqa: E402
-from tests.constants import n_horizon, \
+from quadsim.src.controllers.nonlinear_mpc import Nonlinear_MPC  # noqa: E402
+from quadsim.scripts.utils import test_controller  # noqa: E402
+from quadsim.tests.constants import n_horizon, \
     control_freq, simulation_freq, t_end  # noqa: E402
 
-from src.envs.quad import DeterministicQuad  # noqa: E402
-from src.envs.quad import linear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
+from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
 import time  # noqa: E402
 
 

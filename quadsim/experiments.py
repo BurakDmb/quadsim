@@ -1,5 +1,5 @@
 def experiment1():
-    from scripts.experiment1_compare_all import experiment1_compare_all
+    from quadsim.scripts.experiment1_compare_all import experiment1_compare_all
     print("---------------------------------------------------------------")
     print("Experiment 1")
     print("---------------------------------------------------------------")
@@ -8,7 +8,7 @@ def experiment1():
 
 
 def experiment2():
-    from scripts.compare_controller_input_limits \
+    from quadsim.scripts.compare_controller_input_limits \
         import compare_controller_input_limits
     print("---------------------------------------------------------------")
     print("Experiment 2")
@@ -18,7 +18,8 @@ def experiment2():
 
 
 def experiment4():
-    from scripts.compare_initial_conditions import compare_initial_conditions
+    from quadsim.scripts.compare_initial_conditions\
+        import compare_initial_conditions
     print("---------------------------------------------------------------")
     print("Experiment 4")
     print("---------------------------------------------------------------")
@@ -26,7 +27,7 @@ def experiment4():
 
 
 def experiment5():
-    from scripts.compare_parameters import compare_parameters
+    from quadsim.scripts.compare_parameters import compare_parameters
     print("---------------------------------------------------------------")
     print("Experiment 5")
     print("---------------------------------------------------------------")
@@ -34,7 +35,7 @@ def experiment5():
 
 
 if __name__ == '__main__':
-    from tests.unit_tests import unittest_main
+    from quadsim.tests.unit_tests import unittest_main
     unittest_main()
     experiment1()
     # experiment2()

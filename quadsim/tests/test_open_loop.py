@@ -2,7 +2,7 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from scripts.utils import test_controller  # noqa: E402
+from quadsim.scripts.utils import test_controller  # noqa: E402
 
 
 def test_all_environments_open_loop(plot=False, save_plot=False):

@@ -3,11 +3,11 @@ import os
 sys.path.insert(0, './')
 
 from stable_baselines3 import PPO  # noqa: E402
-from scripts.utils import test_controller  # noqa: E402
-from tests.constants import t_end  # noqa: E402
+from quadsim.scripts.utils import test_controller  # noqa: E402
+from quadsim.tests.constants import t_end  # noqa: E402
 
-from src.envs.quad import DeterministicQuad  # noqa: E402
-from src.envs.quad import linear_quad_dynamics  # noqa: E402
+from quadsim.src.envs.quad import DeterministicQuad  # noqa: E402
+from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
 
 
 def test_ppo(plot=False, save_plot=False, loadmodel=False):
