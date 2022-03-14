@@ -12,11 +12,9 @@ from quadsim.src.envs.quad import linear_quad_dynamics  # noqa: E402
 
 def test_sac(plot=False, save_plot=False, loadmodel=False):
     if loadmodel:
-        # model = SAC.load("saves/sac-quad/_end_2021-10-22 03:18:15.143412",
-        #                  device="cuda:0")
         model = SAC.load(
             os.getcwd() +
-            "/results/2M_training/saves/sac-quad/sac-quad_550000_steps",
+            "/results/2M_training/saves/sac-quad/ppo-quad_end",
             device="cuda:0")
     else:
         env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
