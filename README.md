@@ -27,6 +27,54 @@ Bibtex:
 }
 ```
 
+## Installation
+
+### Required python packages
+```
+conda create -n quadsim python=3.7 -y
+conda activate quadsim
+
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install -c conda-forge gym matplotlib multiprocess slycot control stable-baselines3 tensorboard flake8 casadi libgfortran==3.0.0 -y
+
+pip install do-mpc
+```
+
+### Running the tensorboard to observe the learning
+
+`tensorboard --logdir ./logs/quad_tensorboard/`
+
+### Executing the tests
+
+To run the test codes, please execute this command:
+```bash
+git clone https://github.com/burakdmb/quadsim.git
+cd quadsim
+conda activate quadsim
+
+# Install quadsim as a package (develop mode) which can be imported in the current environment.
+python setup.py develop
+
+# Running example test codes.
+python tests/unit_tests.py
+python tests/test_pid.py
+python tests/test_lqr.py
+python tests/test_lqg.py
+# Note that you need to add quadsim/src/controllers/hsl/lib directory to LD_LIBRARY_PATH to run MPC controllers.
+# MPC algorithm will automatically check that lib directory is exported to the LD_LIBRARY_PATH.
+# Quadsim will also give the exact command to export in the command line if you execute mpc code before exporting.
+python tests/test_mpc_linear.py
+python tests/test_mpc_nonlinear.py
+python tests/test_rl_a2c.py
+python tests/test_rl_td3.py
+python tests/test_rl_ppo.py
+python tests/test_rl_ddpg.py
+python tests/test_rl_sac.py
+```
+Note: These test codes provides simple examples to the users, algorithms are not optimized and even not tuned for optimal control. Users are encouraged to use their own control algorithms in the simulation.
+
+
+
 ## Mathematical Formulation, Definitions, Dynamics
 
 ### Coordinate Frames
@@ -412,48 +460,3 @@ Reward Plot(Inverse/Negative of cost):
 Actions:
 
 !["LQR example simulation, Actions"](images/LQR_plot_actions.png "LQR example simulation, Actions")
-
-## Installation
-
-### Required python packages
-```
-conda create -n quadsim python=3.7 -y
-conda activate quadsim
-
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-conda install -c conda-forge gym matplotlib multiprocess slycot control stable-baselines3 tensorboard flake8 casadi libgfortran==3.0.0 -y
-
-pip install do-mpc
-```
-
-### Running the tensorboard to observe the learning
-
-`tensorboard --logdir ./logs/quad_tensorboard/`
-
-### Executing the tests
-
-To run the test codes, please execute this command:
-```bash
-cd quadsim
-conda activate quadsim
-
-# Install quadsim as a package (develop mode) which can be imported in the current environment.
-python setup.py develop
-
-# Running example test codes.
-python tests/unit_tests.py
-python tests/test_pid.py
-python tests/test_lqr.py
-python tests/test_lqg.py
-# Note that you need to add quadsim/src/controllers/hsl/lib directory to LD_LIBRARY_PATH to run MPC controllers.
-# MPC algorithm will automatically check that lib directory is exported to the LD_LIBRARY_PATH.
-# Quadsim will also give the exact command to export in the command line if you execute mpc code before exporting.
-python tests/test_mpc_linear.py
-python tests/test_mpc_nonlinear.py
-python tests/test_rl_a2c.py
-python tests/test_rl_td3.py
-python tests/test_rl_ppo.py
-python tests/test_rl_ddpg.py
-python tests/test_rl_sac.py
-```
-Note: These test codes provides simple examples to the users, algorithms are not optimized and even not tuned for optimal control. Users are encouraged to use their own control algorithms in the simulation.
