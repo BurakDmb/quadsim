@@ -1,7 +1,7 @@
 # Quadsim: A Quadcopter Rotational Dynamics
 # Simulation For Reinforcement Learning Algorithms
 # To install, run the command below:
-# python setup.py install --user
+# python setup.py develop
 
 from setuptools import setup, find_packages
 

@@ -437,10 +437,8 @@ To run the test codes, please execute this command:
 cd quad_rotational_simulation
 conda activate quadsim
 
-# Install quadsim as a package which can be imported in anywhere.
-# Please note that if you change the source code,
-# you need to re-install the package by executing the command below.
-python setup.py install --user
+# Install quadsim as a package (develop mode) which can be imported in the current environment.
+python setup.py develop
 
 # Running example test codes.
 python tests/unit_tests.py
