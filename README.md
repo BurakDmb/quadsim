@@ -434,7 +434,7 @@ pip install do-mpc
 
 To run the test codes, please execute this command:
 ```bash
-cd quad_rotational_simulation
+cd quadsim
 conda activate quadsim
 
 # Install quadsim as a package (develop mode) which can be imported in the current environment.
@@ -456,4 +456,4 @@ python tests/test_rl_ppo.py
 python tests/test_rl_ddpg.py
 python tests/test_rl_sac.py
 ```
-
+Note: These test codes provides simple examples to the users, algorithms are not optimized and even tuned for optimal control. Users are encouraged to use their own control algorithms in the simulation.
