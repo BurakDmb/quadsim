@@ -29,15 +29,22 @@ Bibtex:
 
 ## Installation
 
-### Required python packages
+### Install Dependencies Only For The QuadSim Environment
 ```
-conda create -n quadsim python=3.7 -y
+conda create -n quadsim python=3.8 -y
 conda activate quadsim
+conda install -c conda-forge gym==0.19.0 matplotlib==3.5.1 multiprocess==0.70.12.2 flake8==4.0.1 -y
+```
 
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-conda install -c conda-forge gym matplotlib multiprocess slycot control stable-baselines3 tensorboard flake8 casadi libgfortran==3.0.0 -y
+### Install Dependencies For Both QuadSim Environment And Control Algorithms
 
-pip install do-mpc
+```
+conda create -n quadsim python=3.8 -y
+conda activate quadsim
+conda install pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
+
+conda install -c conda-forge gym==0.19.0 matplotlib==3.5.1 multiprocess==0.70.12.2 slycot==0.4.0.0 control==0.9.1 stable-baselines3==1.4.0 tensorboard==2.8.0 flake8==4.0.1 casadi==3.5.5 libgfortran==3.0.0 -y
+pip install do-mpc==4.3.3 pysindy==1.6.3
 ```
 
 ### Running the tensorboard to observe the learning
