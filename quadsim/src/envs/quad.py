@@ -29,8 +29,8 @@ w_min = np.rint(np.sqrt((m * g)/(4*b)))
 
 u1_max = u2_max = d*b*((w_max**2)-(w_min**2))
 u3_max = k*2*((w_max**2)-(w_min**2))
-u_max_scale = 0.6
-u_min = 0.01
+u_max_scale = 0.5
+u_min = 0.05
 
 A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0],
@@ -68,8 +68,8 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([10, 0, 10, 0, 10, 0])
-R_coefficients = np.array([2, 2, 2])
+Q_coefficients = np.array([10, 1, 10, 1, 10, 1])
+R_coefficients = np.array([50, 50, 50])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
