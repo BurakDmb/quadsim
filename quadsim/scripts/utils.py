@@ -1,10 +1,10 @@
 import numpy as np
 import os
 
-from quadsim.src.envs.quad import DeterministicQuad
-from quadsim.src.envs.quad import StochasticQuad
-from quadsim.src.envs.quad import linear_quad_dynamics
-from quadsim.src.envs.quad import nonlinear_quad_dynamics
+# from quadsim.src.envs.quad import DeterministicQuad
+from quadsim.src.envs.quad import Quad
+# from quadsim.src.envs.quad import linear_quad_dynamics
+# from quadsim.src.envs.quad import nonlinear_quad_dynamics
 
 from quadsim.src.plotter import Plotter
 
@@ -126,45 +126,53 @@ def createEnvs(t_end, simulation_freq,
                eval_env=True):
 
     # Linear deterministic quadcopter
-    env1 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                             simulation_freq=simulation_freq,
-                             control_freq=control_freq, random_state_seed=0,
-                             dynamics_state=dynamics_state,
-                             set_custom_u_limit=set_custom_u_limit,
-                             custom_u_high=custom_u_high,
-                             set_constant_reference=True,
-                             constant_reference=constant_reference,
-                             eval_env=eval_env)
+    env1 = Quad(
+        is_linear=True, is_stochastic=False,
+        t_end=t_end,
+        simulation_freq=simulation_freq,
+        control_freq=control_freq, random_state_seed=0,
+        dynamics_state=dynamics_state,
+        set_custom_u_limit=set_custom_u_limit,
+        custom_u_high=custom_u_high,
+        set_constant_reference=True,
+        constant_reference=constant_reference,
+        eval_env=eval_env)
     # Linear stochastic quadcopter
-    env2 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                          simulation_freq=simulation_freq,
-                          control_freq=control_freq, random_state_seed=0,
-                          dynamics_state=dynamics_state,
-                          set_custom_u_limit=set_custom_u_limit,
-                          custom_u_high=custom_u_high,
-                          set_constant_reference=True,
-                          constant_reference=constant_reference,
-                          eval_env=eval_env)
+    env2 = Quad(
+        is_linear=True, is_stochastic=True,
+        t_end=t_end,
+        simulation_freq=simulation_freq,
+        control_freq=control_freq, random_state_seed=0,
+        dynamics_state=dynamics_state,
+        set_custom_u_limit=set_custom_u_limit,
+        custom_u_high=custom_u_high,
+        set_constant_reference=True,
+        constant_reference=constant_reference,
+        eval_env=eval_env)
     # Nonlinear deterministic quadcopter
-    env3 = DeterministicQuad(nonlinear_quad_dynamics, t_end=t_end,
-                             simulation_freq=simulation_freq,
-                             control_freq=control_freq, random_state_seed=0,
-                             dynamics_state=dynamics_state,
-                             set_custom_u_limit=set_custom_u_limit,
-                             custom_u_high=custom_u_high,
-                             set_constant_reference=True,
-                             constant_reference=constant_reference,
-                             eval_env=eval_env)
+    env3 = Quad(
+        is_linear=False, is_stochastic=False,
+        t_end=t_end,
+        simulation_freq=simulation_freq,
+        control_freq=control_freq, random_state_seed=0,
+        dynamics_state=dynamics_state,
+        set_custom_u_limit=set_custom_u_limit,
+        custom_u_high=custom_u_high,
+        set_constant_reference=True,
+        constant_reference=constant_reference,
+        eval_env=eval_env)
     # Nonlinear stochastic quadcopter
-    env4 = StochasticQuad(nonlinear_quad_dynamics, t_end=t_end,
-                          simulation_freq=simulation_freq,
-                          control_freq=control_freq, random_state_seed=0,
-                          dynamics_state=dynamics_state,
-                          set_custom_u_limit=set_custom_u_limit,
-                          custom_u_high=custom_u_high,
-                          set_constant_reference=True,
-                          constant_reference=constant_reference,
-                          eval_env=eval_env)
+    env4 = Quad(
+        is_linear=False, is_stochastic=True,
+        t_end=t_end,
+        simulation_freq=simulation_freq,
+        control_freq=control_freq, random_state_seed=0,
+        dynamics_state=dynamics_state,
+        set_custom_u_limit=set_custom_u_limit,
+        custom_u_high=custom_u_high,
+        set_constant_reference=True,
+        constant_reference=constant_reference,
+        eval_env=eval_env)
     return env1, env2, env3, env4
 
 

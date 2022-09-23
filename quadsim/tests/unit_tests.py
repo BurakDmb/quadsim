@@ -5,14 +5,15 @@ import numpy as np
 class TestEnvironments(unittest.TestCase):
     def test_lqr(self):
         from quadsim.src.controllers.lqr import LQR
-        from quadsim.src.envs.quad import DeterministicQuad
-        from quadsim.src.envs.quad import linear_quad_dynamics
+        from quadsim.src.envs.quad import Quad
         t_end = 5
         control_freq = 50
-        env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                simulation_freq=250,
-                                control_freq=control_freq,
-                                keep_history=True)
+        env = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
         lqr = LQR(env)
         obs = env.reset()
         done = False
@@ -40,11 +41,11 @@ class TestEnvironments(unittest.TestCase):
                         action = action[0]
                     obs, reward, done, _ = env.step(action)
                 epi += 1
+            env.serialize_casadi()
             q.put(env)
             return
 
-        from quadsim.src.envs.quad import DeterministicQuad
-        from quadsim.src.envs.quad import linear_quad_dynamics
+        from quadsim.src.envs.quad import Quad
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
@@ -67,25 +68,38 @@ class TestEnvironments(unittest.TestCase):
         num_episode = 5
 
         controller1 = DummyController1()
-        env1 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+
+        env1 = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
+
         controller2 = DummyController2()
-        env2 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+        env2 = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
+
         controller3 = DummyController3()
-        env3 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+        env3 = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
+
         controller4 = DummyController4()
-        env4 = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                 simulation_freq=250,
-                                 control_freq=control_freq,
-                                 keep_history=True)
+        env4 = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
+
         q1 = Queue()
         q2 = Queue()
         q3 = Queue()
@@ -138,10 +152,11 @@ class TestEnvironments(unittest.TestCase):
                         action = action[0]
                     obs, reward, done, _ = env.step(action)
                 epi += 1
+            env.serialize_casadi()
             q.put(env)
             return
 
-        from quadsim.src.envs.quad import StochasticQuad, linear_quad_dynamics
+        from quadsim.src.envs.quad import Quad
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
@@ -164,25 +179,33 @@ class TestEnvironments(unittest.TestCase):
         num_episode = 5
 
         controller1 = DummyController1()
-        env1 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                              simulation_freq=250,
-                              control_freq=control_freq,
-                              keep_history=True)
+        env1 = Quad(
+            is_linear=True, is_stochastic=True,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
         controller2 = DummyController2()
-        env2 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                              simulation_freq=250,
-                              control_freq=control_freq,
-                              keep_history=True)
+        env2 = Quad(
+            is_linear=True, is_stochastic=True,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
         controller3 = DummyController3()
-        env3 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                              simulation_freq=250,
-                              control_freq=control_freq,
-                              keep_history=True)
+        env3 = Quad(
+            is_linear=True, is_stochastic=True,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
         controller4 = DummyController4()
-        env4 = StochasticQuad(linear_quad_dynamics, t_end=t_end,
-                              simulation_freq=250,
-                              control_freq=control_freq,
-                              keep_history=True)
+        env4 = Quad(
+            is_linear=True, is_stochastic=True,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=control_freq,
+            keep_history=True)
         q1 = Queue()
         q2 = Queue()
         q3 = Queue()

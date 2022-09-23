@@ -258,34 +258,31 @@ The angle states are also mapped between [-pi, pi).
    The signatures of the environments are given as follow:
 
    ```python
-   DeterministicQuad(solver_func, t_start=0, t_end=5, simulation_freq=250,
-                 control_freq=50,
-                 dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-                 keep_history=True,
-                 random_state_seed=0,
-                 set_constant_reference=False,
-                 constant_reference=1,
-                 set_custom_u_limit=False,
-                 custom_u_high=np.array([1, 1, 1])):
+   Quad(
+      is_linear=True, is_stochastic=False,
+      t_start=0, t_end=3, simulation_freq=250,
+      control_freq=50,
+      dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
+      noise_w_mean=0, noise_w_variance=0.01,
+      noise_v_mean=0, noise_v_variance=0.01,
+      keep_history=True,
+      random_state_seed=0,
+      random_noise_seed_wk=0,
+      random_noise_seed_vk=0,
+      set_constant_reference=False,
+      constant_reference=np.array([1, 0, 1, 0, 1, 0]),
+      set_custom_u_limit=False,
+      custom_u_high=np.array([1, 1, 1]),
+      checkForSoftLimits=False,
+      eval_env=False,
+      use_casadi=True):
+
    ```
 
-   ```python
-   StochasticQuad(solver_func, t_start=0, t_end=3, simulation_freq=250,
-                 control_freq=50,
-                 dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-                 noise_w_mean=0, noise_w_variance=0.01,
-                 noise_v_mean=0, noise_v_variance=0.01,
-                 keep_history=True,
-                 random_state_seed=0,
-                 random_noise_seed_wk=0,
-                 random_noise_seed_vk=0,
-                 set_constant_reference=False,
-                 constant_reference=1,
-                 set_custom_u_limit=False,
-                 custom_u_high=np.array([1, 1, 1])):
-   ```
 
-* __`solver_func`__ is the solver function, which can be `linear_quad_dynamics` or `nonlinear_quad_dynamics` functions. These functions are also defined in the `quad.py` file.
+* __`is_linear`__ is the dynamics selection variable, which can be `True` or `False`. True denotes that linear dynamics will be used and False denotes nonlinear dynamics.
+* 
+* __`is_stochastic`__ is the stochasticity selection variable, which can be `True` or `False`. True denotes that Stochastic variables (gaussian) will be used and False denotes Deterministic.
 
 * __`t_start` `t_end`__ are the simulation start and end time. For now, it only affects the episode length because of these systems are time invariant.
 
@@ -306,6 +303,8 @@ The angle states are also mapped between [-pi, pi).
 * __`set_constant_reference`__ and __`constant_reference`__ parameters enables the use of constant reference for the environments. The first parameter is the boolean parameter to enable this functionality and the second parameter is the value of this feature.
 
 * __`set_custom_u_limit`__ and __`custom_u_high`__ parameters enables the use of custom input(U) limits for the system. The first parameter is the boolean parameter to enable this functionality and the second parameter is the value of this feature.
+
+* __`use_casadi`__ is the ODE solver library selection parameter, which can be `True` or `False`. True denotes Casadi will be used for ODE initial value problem and False means Scipy.
 
 ### Quadcopter Simulation Parameters
 

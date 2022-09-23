@@ -3,6 +3,7 @@ from gym import spaces
 import numpy as np
 from scipy.integrate import solve_ivp
 from .util_history import History
+import casadi
 
 Ixx = 0.0213
 Iyy = 0.02217
@@ -122,26 +123,34 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
     return dxdt
 
 
-class DeterministicQuad(gym.Env):
+class Quad(gym.Env):
     """
-    Linear and Deterministic Quadcopter System Dynamics
+    Linear and Stochastic Quadcopter System Dynamics
     System Input(actions): U(U1, U2, U3) torque values
     System Output(states): X = phi, phidot, theta, thetadot, psi, psidot
     """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, solver_func, t_start=0, t_end=5, simulation_freq=250,
-                 control_freq=50,
-                 dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-                 keep_history=True,
-                 random_state_seed=0,
-                 set_constant_reference=False,
-                 constant_reference=np.array([1, 0, 1, 0, 1, 0]),
-                 set_custom_u_limit=False,
-                 custom_u_high=np.array([1, 1, 1]),
-                 checkForSoftLimits=False,
-                 eval_env=False):
-        super(DeterministicQuad, self).__init__()
+    def __init__(
+            self, is_linear=True, is_stochastic=False,
+            t_start=0, t_end=3, simulation_freq=250,
+            control_freq=50,
+            dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
+            noise_w_mean=0, noise_w_variance=0.01,
+            noise_v_mean=0, noise_v_variance=0.01,
+            keep_history=True,
+            random_state_seed=0,
+            random_noise_seed_wk=0,
+            random_noise_seed_vk=0,
+            set_constant_reference=False,
+            constant_reference=np.array([1, 0, 1, 0, 1, 0]),
+            set_custom_u_limit=False,
+            custom_u_high=np.array([1, 1, 1]),
+            checkForSoftLimits=False,
+            eval_env=False,
+            use_casadi=True):
+
+        super(Quad, self).__init__()
         self.Ixx = Ixx
         self.Iyy = Iyy
         self.Izz = Izz
@@ -158,7 +167,7 @@ class DeterministicQuad(gym.Env):
         self.custom_u_high = custom_u_high
         self.eval_env = eval_env
 
-        self.checkForSoftLimits = False
+        self.checkForSoftLimits = checkForSoftLimits
 
         self.db = db
         self.w_max = w_max
@@ -168,7 +177,8 @@ class DeterministicQuad(gym.Env):
         self.G = G
         self.H = H
 
-        self.solver_func = solver_func
+        self.solver_func = linear_quad_dynamics if is_linear else \
+            nonlinear_quad_dynamics
 
         # motor min and max speed values, max=4720 and min=3093 rpm
         # by the reference (converted into rad/s values)
@@ -247,7 +257,62 @@ class DeterministicQuad(gym.Env):
         self.rnd_state = np.random.default_rng(random_state_seed)
         self.env_reset_flag = False
         self.keep_history = keep_history
+        self.use_casadi = use_casadi
+        self.casadi_serialized = False
 
+        # Stochastic env properties
+        self.is_stochastic = is_stochastic
+        self.rnd_noise_wk = np.random.default_rng(random_noise_seed_wk)
+        self.rnd_noise_vk = np.random.default_rng(random_noise_seed_vk)
+        self.noise_w_mean = noise_w_mean
+        self.noise_w_variance = noise_w_variance
+        self.noise_v_mean = noise_v_mean
+        self.noise_v_variance = noise_v_variance
+
+        # Casadi integrator initialization
+        if self.use_casadi:
+            self.sym_x = casadi.SX.sym("x", 6)  # Differential states
+            self.sym_u = casadi.SX.sym("u", 3)  # Control
+            self.sym_wk = casadi.SX.sym("wk", 6)  # process noise
+            if self.solver_func.__name__ == 'nonlinear_quad_dynamics':
+                self.sym_xdot = casadi.vertcat(
+                    self.sym_x[1],
+                    (((Iyy-Izz) @ (self.sym_x[3]*self.sym_x[5])) +
+                        self.sym_u[0]) / Ixx,
+                    self.sym_x[3],
+                    (((Izz-Ixx) @ (self.sym_x[1]*self.sym_x[5])) +
+                        self.sym_u[1]) / Iyy,
+                    self.sym_x[5],
+                    (((Ixx-Iyy) @ (self.sym_x[1]*self.sym_x[3])) +
+                        self.sym_u[2]) / Izz,
+                ) + G @ self.sym_wk
+            else:
+                self.sym_xdot = casadi.vertcat(
+                    self.sym_x[1],
+                    (self.sym_u[0]) / Ixx,
+                    self.sym_x[3],
+                    (self.sym_u[1]) / Iyy,
+                    self.sym_x[5],
+                    (self.sym_u[2]) / Izz,
+                ) + G @ self.sym_wk
+
+            # Create an integrator
+            ode = {
+                'x': self.sym_x,
+                'p': casadi.vertcat(self.sym_u, self.sym_wk),
+                'ode': self.sym_xdot
+                }
+
+            opts = {
+                "tf": self.control_timestep,
+                'common_options': {'max_step_size': self.simulation_timestep},
+                # 'verbose': True
+                }
+
+            self.integrator = casadi.integrator(
+                'NL_Integrator', 'rk', ode, opts)
+
+        # History initialization
         if self.keep_history:
             self.history = History(self.__class__.__name__)
             self.history.sol_x = np.array([])
@@ -255,8 +320,24 @@ class DeterministicQuad(gym.Env):
             self.history.sol_ref = np.array([])
             self.history.sol_reward = np.array([])
             self.history.sol_actions = np.array([])
+            # self.history.env_name = self.__class__.__name__
+            self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
 
     def step(self, action):
+
+        if self.is_stochastic:
+            # Randomly generating process and measurement noise
+            wk = self.rnd_noise_wk.normal(
+                self.noise_w_mean,
+                self.noise_w_variance,
+                self.dynamics_len).reshape(-1, 1)
+            vk = self.rnd_noise_vk.normal(
+                self.noise_v_mean,
+                self.noise_v_variance,
+                self.dynamics_len).reshape(-1, 1)
+        else:
+            wk = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            vk = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         # Execute one time step within the environment
         self.current_time = self.current_timestep * self.control_timestep
         time_range = (self.current_time,
@@ -264,30 +345,52 @@ class DeterministicQuad(gym.Env):
 
         action_clipped = np.maximum(np.minimum(action, self.u_max),
                                     -self.u_max)
+
         if self.set_custom_u_limit:
             action_clipped = np.maximum(np.minimum(action, self.custom_u_high),
                                         -self.custom_u_high)
         u1, u2, u3 = action_clipped
         # w1s, w2s, w3s, w4s = self.motor_mixing(u1, u2, u3)
 
-        # solve_ivp for integrating a initial value problem for system of ODEs.
-        # By using the max_step parameter, the simulation is ensured
-        # to have minimum 250Hz freq.
-        sol = solve_ivp(self.solver_func, time_range,
-                        self.dynamics_state,
-                        # args=(w1s, w2s, w3s, w4s),
-                        args=(u1, u2, u3),
-                        vectorized=True,
-                        max_step=self.simulation_timestep)
+        if self.use_casadi:
+            if self.casadi_serialized:
+                self.deserialize_casadi()
+            result = self.integrator(
+                x0=self.dynamics_state,
+                p=casadi.vertcat(action_clipped, wk))
+            next_state = result['xf'].full().flatten()
+            next_time = time_range[1]
+        else:
+            # solve_ivp for integrating a initial value problem
+            # for system of ODEs.
+            # By using the max_step parameter, the simulation is ensured
+            # to have minimum self.simulation_freq Hz freq.
+            sol = solve_ivp(self.solver_func, time_range,
+                            self.dynamics_state,
+                            args=(u1, u2, u3, wk),
+                            # args=(w1s, w2s, w3s, w4s),
+                            vectorized=True,
+                            max_step=self.simulation_timestep)
 
-        next_state = sol.y[:, -1]
-        next_time = sol.t[-1]
+            next_state = sol.y[:, -1]
+            next_time = time_range[1]
+            # Mapping the state dynamics to -pi, pi
+            next_state[[0, 2, 4]] = (((
+                next_state[[0, 2, 4]] + np.pi) % (2*np.pi)) - np.pi)
 
-        # Mapping the state dynamics to -pi, pi
+        # Adding the measurement noise to the observation
+        # Flatten is used to convert 6,1 matrix to 6, vector.
+        next_obs = next_state + np.dot(H, vk).flatten()
+        # TODO add H
+
+        # Mapping the observation values to -pi, pi
+        next_obs[[0, 2, 4]] = (((next_obs[[0, 2, 4]] + np.pi) % (2*np.pi))
+                               - np.pi)
+        # Mapping the observation values to -pi, pi
         next_state[[0, 2, 4]] = (((next_state[[0, 2, 4]] + np.pi) % (2*np.pi))
                                  - np.pi)
-        current_reference_diff = self.reference_state - next_state
 
+        current_reference_diff = self.reference_state - next_state
         if current_reference_diff[0] > np.pi:
             current_reference_diff[0] -= 2*np.pi
         if current_reference_diff[0] < -np.pi:
@@ -309,13 +412,19 @@ class DeterministicQuad(gym.Env):
             ).item() / (self.Q_coefficients.sum() + self.R_coefficients.sum())
 
         if self.keep_history:
-            self.history.sol_x = (np.column_stack((self.history.sol_x,
-                                                   next_state))
-                                  if self.history.sol_x.size else next_state)
+            self.history.sol_x_wo_noise = (np.column_stack(
+                (self.history.sol_x_wo_noise, next_state))
+                if self.history.sol_x_wo_noise.size else next_state)
 
-            self.history.sol_t = (np.column_stack((self.history.sol_t,
-                                                   next_time))
-                                  if self.history.sol_t.size else next_time)
+            self.history.sol_x = (np.column_stack((self.history.sol_x,
+                                                   next_obs))
+                                  if self.history.sol_x.size else next_obs)
+
+            self.history.sol_t = (
+                np.column_stack((
+                    self.history.sol_t, next_time)
+                    ) if self.history.sol_t.size else np.expand_dims(
+                        np.array(next_time), axis=0))
 
             self.history.sol_ref = (np.column_stack(
                 (self.history.sol_ref, self.reference_state))
@@ -330,35 +439,31 @@ class DeterministicQuad(gym.Env):
                 if self.history.sol_actions.size else action_clipped)
 
             self.t = np.reshape(self.history.sol_t, -1)
+
         self.dynamics_state = next_state
 
-        if (np.abs(self.dynamics_state[1]) +
-            (self.control_timestep *
-             (self.u_max[0]/self.Ixx))) > self.high[1]:
+        if np.abs(self.dynamics_state[1]) > (self.high[1]/2):
             self.env_reset_flag = True
-        if (np.abs(self.dynamics_state[3]) +
-            (self.control_timestep *
-             (self.u_max[1]/self.Iyy))) > self.high[3]:
+        if np.abs(self.dynamics_state[3]) > (self.high[3]/2):
             self.env_reset_flag = True
-        if (np.abs(self.dynamics_state[5]) +
-            (self.control_timestep *
-             (self.u_max[2]/self.Izz))) > self.high[5]:
+        if np.abs(self.dynamics_state[5]) > (self.high[5]/2):
             self.env_reset_flag = True
 
         self.state = self.reference_state - self.dynamics_state
-        if self.state[0] > np.pi:
+
+        while self.state[0] > np.pi:
             self.state[0] -= 2*np.pi
-        if self.state[0] < -np.pi:
+        while self.state[0] < -np.pi:
             self.state[0] += 2*np.pi
 
-        if self.state[2] > np.pi:
+        while self.state[2] > np.pi:
             self.state[2] -= 2*np.pi
-        if self.state[2] < -np.pi:
+        while self.state[2] < -np.pi:
             self.state[2] += 2*np.pi
 
-        if self.state[4] > np.pi:
+        while self.state[4] > np.pi:
             self.state[4] -= 2*np.pi
-        if self.state[4] < -np.pi:
+        while self.state[4] < -np.pi:
             self.state[4] += 2*np.pi
 
         self.current_timestep += 1
@@ -388,9 +493,8 @@ class DeterministicQuad(gym.Env):
             self.env_reset_flag = False
 
         # Generate a random reference(in radians)
-        self.reference_state = self.rnd_state.uniform(low=-np.pi,
-                                                      high=np.pi,
-                                                      size=6)
+        self.reference_state = self.rnd_state.uniform(
+            low=-np.pi, high=np.pi, size=6)
 
         self.reference_state[[1, 3, 5]] = 0.0
 
@@ -438,188 +542,16 @@ class DeterministicQuad(gym.Env):
         W = np.array([w1_square, w2_square, w3_square, w4_square])
         return W
 
+    def serialize_casadi(self):
+        self.integrator = self.integrator.serialize()
+        self.sym_u = self.sym_u.serialize()
+        self.sym_wk = self.sym_wk.serialize()
+        self.sym_x = self.sym_x.serialize()
+        self.sym_xdot = self.sym_xdot.serialize()
 
-class StochasticQuad(DeterministicQuad):
-    """
-    Linear and Stochastic Quadcopter System Dynamics
-    System Input(actions): U(U1, U2, U3) torque values
-    System Output(states): X = phi, phidot, theta, thetadot, psi, psidot
-    """
-    metadata = {'render.modes': ['human']}
-
-    def __init__(self, solver_func, t_start=0, t_end=3, simulation_freq=250,
-                 control_freq=50,
-                 dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-                 noise_w_mean=0, noise_w_variance=0.01,
-                 noise_v_mean=0, noise_v_variance=0.01,
-                 keep_history=True,
-                 random_state_seed=0,
-                 random_noise_seed_wk=0,
-                 random_noise_seed_vk=0,
-                 set_constant_reference=False,
-                 constant_reference=np.array([1, 0, 1, 0, 1, 0]),
-                 set_custom_u_limit=False,
-                 custom_u_high=np.array([1, 1, 1]),
-                 checkForSoftLimits=False,
-                 eval_env=False):
-        super(StochasticQuad, self).\
-            __init__(solver_func, t_start=t_start, t_end=t_end,
-                     simulation_freq=simulation_freq,
-                     control_freq=control_freq,
-                     dynamics_state=dynamics_state,
-                     keep_history=keep_history,
-                     random_state_seed=random_state_seed,
-                     set_constant_reference=set_constant_reference,
-                     constant_reference=constant_reference,
-                     set_custom_u_limit=set_custom_u_limit,
-                     custom_u_high=custom_u_high,
-                     checkForSoftLimits=checkForSoftLimits,
-                     eval_env=eval_env)
-        self.solver_func = solver_func
-        self.rnd_noise_wk = np.random.default_rng(random_noise_seed_wk)
-        self.rnd_noise_vk = np.random.default_rng(random_noise_seed_vk)
-        self.noise_w_mean = noise_w_mean
-        self.noise_w_variance = noise_w_variance
-        self.noise_v_mean = noise_v_mean
-        self.noise_v_variance = noise_v_variance
-
-        if self.keep_history:
-            self.history.env_name = self.__class__.__name__
-
-            self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
-
-    def step(self, action):
-
-        # Randomly generating process and measurement noise
-        wk = self.rnd_noise_wk.normal(self.noise_w_mean, self.noise_w_variance,
-                                      self.dynamics_len).reshape(-1, 1)
-        vk = self.rnd_noise_vk.normal(self.noise_v_mean, self.noise_v_variance,
-                                      self.dynamics_len).reshape(-1, 1)
-
-        # Execute one time step within the environment
-        self.current_time = self.current_timestep * self.control_timestep
-        time_range = (self.current_time,
-                      self.current_time + self.control_timestep)
-
-        action_clipped = np.maximum(np.minimum(action, self.u_max),
-                                    -self.u_max)
-
-        if self.set_custom_u_limit:
-            action_clipped = np.maximum(np.minimum(action, self.custom_u_high),
-                                        -self.custom_u_high)
-        u1, u2, u3 = action_clipped
-        # w1s, w2s, w3s, w4s = self.motor_mixing(u1, u2, u3)
-
-        # solve_ivp for integrating a initial value problem for system of ODEs.
-        # By using the max_step parameter, the simulation is ensured
-        # to have minimum 250Hz freq.
-        sol = solve_ivp(self.solver_func, time_range,
-                        self.dynamics_state,
-                        args=(u1, u2, u3, wk),
-                        # args=(w1s, w2s, w3s, w4s),
-                        vectorized=True,
-                        max_step=self.simulation_timestep)
-
-        next_state = sol.y[:, -1]
-        # Mapping the state dynamics to -pi, pi
-        next_state[[0, 2, 4]] = (((next_state[[0, 2, 4]] + np.pi) % (2*np.pi))
-                                 - np.pi)
-
-        # Adding the measurement noise to the observation
-        # Flatten is used to convert 6,1 matrix to 6, vector.
-        next_obs = next_state + np.dot(H, vk).flatten()
-        # TODO add H
-
-        # Mapping the observation values to -pi, pi
-        next_obs[[0, 2, 4]] = (((next_obs[[0, 2, 4]] + np.pi) % (2*np.pi))
-                               - np.pi)
-        next_time = sol.t[-1]
-
-        current_reference_diff = self.reference_state - next_state
-        if current_reference_diff[0] > np.pi:
-            current_reference_diff[0] -= 2*np.pi
-        if current_reference_diff[0] < -np.pi:
-            current_reference_diff[0] += 2*np.pi
-
-        if current_reference_diff[2] > np.pi:
-            current_reference_diff[2] -= 2*np.pi
-        if current_reference_diff[2] < -np.pi:
-            current_reference_diff[2] += 2*np.pi
-
-        if current_reference_diff[4] > np.pi:
-            current_reference_diff[4] -= 2*np.pi
-        if current_reference_diff[4] < -np.pi:
-            current_reference_diff[4] += 2*np.pi
-
-        reward = -(
-            ((current_reference_diff.T @ self.Q @ current_reference_diff)) +
-            (((action_clipped.T @ self.R @ action_clipped)))
-            ).item() / (self.Q_coefficients.sum() + self.R_coefficients.sum())
-
-        if self.keep_history:
-            self.history.sol_x_wo_noise = (np.column_stack(
-                (self.history.sol_x_wo_noise, next_state))
-                if self.history.sol_x_wo_noise.size else next_state)
-
-            self.history.sol_x = (np.column_stack((self.history.sol_x,
-                                                   next_obs))
-                                  if self.history.sol_x.size else next_obs)
-
-            self.history.sol_t = (np.column_stack((self.history.sol_t,
-                                                   next_time))
-                                  if self.history.sol_t.size else next_time)
-
-            self.history.sol_ref = (np.column_stack(
-                (self.history.sol_ref, self.reference_state))
-                if self.history.sol_ref.size else self.reference_state)
-
-            self.history.sol_reward = (np.column_stack(
-                (self.history.sol_reward, reward))
-                if self.history.sol_reward.size else np.array([reward]))
-
-            self.history.sol_actions = (np.column_stack(
-                (self.history.sol_actions, action_clipped))
-                if self.history.sol_actions.size else action_clipped)
-
-            self.t = np.reshape(self.history.sol_t, -1)
-        self.dynamics_state = next_state
-
-        if np.abs(self.dynamics_state[1]) > (self.high[1]/2):
-            self.env_reset_flag = True
-        if np.abs(self.dynamics_state[3]) > (self.high[3]/2):
-            self.env_reset_flag = True
-        if np.abs(self.dynamics_state[5]) > (self.high[5]/2):
-            self.env_reset_flag = True
-
-        self.state = self.reference_state - self.dynamics_state
-
-        if self.state[0] > np.pi:
-            self.state[0] -= 2*np.pi
-        if self.state[0] < -np.pi:
-            self.state[0] += 2*np.pi
-
-        if self.state[2] > np.pi:
-            self.state[2] -= 2*np.pi
-        if self.state[2] < -np.pi:
-            self.state[2] += 2*np.pi
-
-        if self.state[4] > np.pi:
-            self.state[4] -= 2*np.pi
-        if self.state[4] < -np.pi:
-            self.state[4] += 2*np.pi
-
-        self.current_timestep += 1
-        self.episode_timestep += 1
-        info = {"episode": None}
-
-        done = False
-        if self.checkLimitsExceed(self.checkForSoftLimits):
-            self.env_reset_flag = True
-            done = True
-
-        if (self.episode_timestep >= self.t_end*self.control_freq):
-            done = True
-            self.env_reset_flag = True
-            if self.keep_history:
-                self.t = np.reshape(self.history.sol_t, -1)
-        return self.state, reward, done, info
+    def deserialize_casadi(self):
+        self.integrator = self.integrator.deserialize()
+        self.sym_u = self.sym_u.deserialize()
+        self.sym_wk = self.sym_wk.deserialize()
+        self.sym_x = self.sym_x.deserialize()
+        self.sym_xdot = self.sym_xdot.deserialize()

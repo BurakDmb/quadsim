@@ -4,8 +4,7 @@ from stable_baselines3 import A2C
 from quadsim.scripts.utils import test_controller
 from quadsim.tests.constants import t_end
 
-from quadsim.src.envs.quad import DeterministicQuad
-from quadsim.src.envs.quad import linear_quad_dynamics
+from quadsim.src.envs.quad import Quad
 
 
 def test_a2c(plot=False, save_plot=False, loadmodel=False):
@@ -15,9 +14,12 @@ def test_a2c(plot=False, save_plot=False, loadmodel=False):
             "/results/2M_training/saves/a2c-quad/a2c-quad_end",
             device="cuda:0")
     else:
-        env = DeterministicQuad(linear_quad_dynamics, t_end=t_end,
-                                simulation_freq=250, control_freq=50,
-                                keep_history=False)
+        env = Quad(
+            is_linear=True, is_stochastic=False,
+            t_end=t_end,
+            simulation_freq=250,
+            control_freq=50,
+            keep_history=False)
         model = A2C('MlpPolicy', env, verbose=0,
                     device='cuda:0')
         model.learn(total_timesteps=100_000)
