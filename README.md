@@ -169,10 +169,11 @@ To ease up the usage of the simulation for RL and other agents/algorithms, the s
 
 ##### States
 
-   With the given system dynamics, the aim is to track reference angle signals(roll, pitch and yaw angles) in the best way. Therefore, we augment the state with extra 6 dimensional information which tells what reference signals must the controller follow.
+   With the given system dynamics, the aim is to track reference angle signals(roll, pitch and yaw angles) in the best way. Therefore, we augment the state with extra 6 dimensional information which tells what reference signals must the controller follow. Environment state combines both error state(which means reference minus current state information) and current state, resulting a 12-dimension vector `(12,)`.
 
    To summarize, the augmented state is defined like this:
-   <img src="http://latex.codecogs.com/gif.latex?\dpi{110}&space;x&space;=&space;&space;&space;&space;\begin{bmatrix}&space;&space;&space;&space;&space;&space;\phi_{err}&space;\\&space;&space;&space;&space;&space;&space;\dot{\phi}_{err}&space;\\&space;&space;&space;&space;&space;&space;\theta_{err}&space;\\&space;&space;&space;&space;&space;&space;\dot{\theta}_{err}&space;\\&space;&space;&space;&space;&space;&space;\psi_{err}&space;\\&space;&space;&space;&space;&space;&space;\dot{\psi}_{err}&space;\\&space;&space;&space;\end{bmatrix}&space;" title="http://latex.codecogs.com/gif.latex?\dpi{110} x = \begin{bmatrix} \phi_{err} \\ \dot{\phi}_{err} \\ \theta_{err} \\ \dot{\theta}_{err} \\ \psi_{err} \\ \dot{\psi}_{err} \\ \end{bmatrix} " />
+
+   <img src="https://latex.codecogs.com/gif.image?\dpi{110}x&space;=&space;\begin{bmatrix}\phi_{err}&space;\\&space;\dot{\phi}_{err}&space;\\&space;\theta_{err}&space;\\&space;\dot{\theta}_{err}&space;\\&space;\psi_{err}&space;\\&space;\dot{\psi}_{err}&space;\\&space;\phi&space;\\&space;\dot{\phi}&space;\\&space;\theta&space;\\&space;\dot{\theta}&space;\\&space;\psi&space;\\&space;\dot{\psi}&space;\\\end{bmatrix}&space;" title="https://latex.codecogs.com/gif.image?\dpi{110}x = \begin{bmatrix}\phi_{err} \\ \dot{\phi}_{err} \\ \theta_{err} \\ \dot{\theta}_{err} \\ \psi_{err} \\ \dot{\psi}_{err} \\ \phi \\ \dot{\phi} \\ \theta \\ \dot{\theta} \\ \psi \\ \dot{\psi} \\\end{bmatrix} " />
 
 Note that error variables are the difference between the reference state and current state.
 
@@ -274,7 +275,7 @@ The angle states are also mapped between [-pi, pi).
 
 
 * __`is_linear`__ is the dynamics selection variable, which can be `True` or `False`. True denotes that linear dynamics will be used and False denotes nonlinear dynamics.
-* 
+
 * __`is_stochastic`__ is the stochasticity selection variable, which can be `True` or `False`. True denotes that Stochastic variables (gaussian) will be used and False denotes Deterministic.
 
 * __`t_start` `t_end`__ are the simulation start and end time. For now, it only affects the episode length because of these systems are time invariant.

@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 import numpy as np
 from scipy.integrate import solve_ivp
-from .util_history import History
+from quadsim.src.envs.util_history import History
 import casadi
 
 Ixx = 0.0213
@@ -200,19 +200,23 @@ class Quad(gym.Env):
         self.psi_max = (u3_max/Izz)*(((t_end-t_start)**2)/2)
         self.psidot_max = (u3_max/Izz)*(t_end-t_start)
 
-        self.high = np.float32(np.array([np.pi,
-                                        self.phidot_max,
-                                        np.pi,
-                                        self.thetadot_max,
-                                        np.pi,
-                                        self.psidot_max]))
+        high_ = np.float32(np.array([
+            np.pi,
+            self.phidot_max,
+            np.pi,
+            self.thetadot_max,
+            np.pi,
+            self.psidot_max]))
+        self.high = np.append(high_, high_)
 
-        self.soft_high = np.float32(np.array([np.pi,
-                                              soft_phidot,
-                                              np.pi,
-                                              soft_thetadot,
-                                              np.pi,
-                                              soft_psidot]))
+        soft_high_ = np.float32(np.array([
+            np.pi,
+            soft_phidot,
+            np.pi,
+            soft_thetadot,
+            np.pi,
+            soft_psidot]))
+        self.soft_high = np.append(soft_high_, soft_high_)
 
         # Quadratic Cost/Reward Matrix
         self.Q_coefficients = Q_coefficients
@@ -232,7 +236,7 @@ class Quad(gym.Env):
 
         self.action_len = len(self.u_max)
         self.state_len = len(self.high)
-        self.dynamics_len = len(self.high)
+        self.dynamics_len = len(self.high[0:6])
         self.action_space = spaces.Box(low=-self.u_max,
                                        high=self.u_max)
         self.observation_space = spaces.Box(low=-self.high,
@@ -378,32 +382,34 @@ class Quad(gym.Env):
             next_state[[0, 2, 4]] = (((
                 next_state[[0, 2, 4]] + np.pi) % (2*np.pi)) - np.pi)
 
+        # Mapping the observation values to -pi, pi
+        next_state[[0, 2, 4]] = ((
+            (next_state[[0, 2, 4]] + np.pi) %
+            (2*np.pi)) - np.pi)
+
         # Adding the measurement noise to the observation
         # Flatten is used to convert 6,1 matrix to 6, vector.
         next_obs = next_state + np.dot(H, vk).flatten()
-        # TODO add H
 
         # Mapping the observation values to -pi, pi
-        next_obs[[0, 2, 4]] = (((next_obs[[0, 2, 4]] + np.pi) % (2*np.pi))
-                               - np.pi)
-        # Mapping the observation values to -pi, pi
-        next_state[[0, 2, 4]] = (((next_state[[0, 2, 4]] + np.pi) % (2*np.pi))
-                                 - np.pi)
+        next_obs[[0, 2, 4]] = ((
+            (next_obs[[0, 2, 4]] + np.pi) %
+            (2*np.pi)) - np.pi)
 
-        current_reference_diff = self.reference_state - next_state
-        if current_reference_diff[0] > np.pi:
+        current_reference_diff = self.reference_state - next_obs
+        while current_reference_diff[0] > np.pi:
             current_reference_diff[0] -= 2*np.pi
-        if current_reference_diff[0] < -np.pi:
+        while current_reference_diff[0] < -np.pi:
             current_reference_diff[0] += 2*np.pi
 
-        if current_reference_diff[2] > np.pi:
+        while current_reference_diff[2] > np.pi:
             current_reference_diff[2] -= 2*np.pi
-        if current_reference_diff[2] < -np.pi:
+        while current_reference_diff[2] < -np.pi:
             current_reference_diff[2] += 2*np.pi
 
-        if current_reference_diff[4] > np.pi:
+        while current_reference_diff[4] > np.pi:
             current_reference_diff[4] -= 2*np.pi
-        if current_reference_diff[4] < -np.pi:
+        while current_reference_diff[4] < -np.pi:
             current_reference_diff[4] += 2*np.pi
 
         reward = -(
@@ -449,23 +455,24 @@ class Quad(gym.Env):
         if np.abs(self.dynamics_state[5]) > (self.high[5]/2):
             self.env_reset_flag = True
 
-        self.state = self.reference_state - self.dynamics_state
+        state_ = self.reference_state - next_obs
 
-        while self.state[0] > np.pi:
-            self.state[0] -= 2*np.pi
-        while self.state[0] < -np.pi:
-            self.state[0] += 2*np.pi
+        while state_[0] > np.pi:
+            state_[0] -= 2*np.pi
+        while state_[0] < -np.pi:
+            state_[0] += 2*np.pi
 
-        while self.state[2] > np.pi:
-            self.state[2] -= 2*np.pi
-        while self.state[2] < -np.pi:
-            self.state[2] += 2*np.pi
+        while state_[2] > np.pi:
+            state_[2] -= 2*np.pi
+        while state_[2] < -np.pi:
+            state_[2] += 2*np.pi
 
-        while self.state[4] > np.pi:
-            self.state[4] -= 2*np.pi
-        while self.state[4] < -np.pi:
-            self.state[4] += 2*np.pi
+        while state_[4] > np.pi:
+            state_[4] -= 2*np.pi
+        while state_[4] < -np.pi:
+            state_[4] += 2*np.pi
 
+        self.state = np.append(state_, next_obs)
         self.current_timestep += 1
         self.episode_timestep += 1
         info = {"episode": None}
@@ -501,36 +508,37 @@ class Quad(gym.Env):
         if self.set_constant_reference:
             self.reference_state = self.constant_reference
 
-        self.state = self.reference_state - self.dynamics_state
-        if self.state[0] > np.pi:
-            self.state[0] -= 2*np.pi
-        if self.state[0] < -np.pi:
-            self.state[0] += 2*np.pi
+        state_ = self.reference_state - self.dynamics_state
+        if state_[0] > np.pi:
+            state_[0] -= 2*np.pi
+        if state_[0] < -np.pi:
+            state_[0] += 2*np.pi
 
-        if self.state[2] > np.pi:
-            self.state[2] -= 2*np.pi
-        if self.state[2] < -np.pi:
-            self.state[2] += 2*np.pi
+        if state_[2] > np.pi:
+            state_[2] -= 2*np.pi
+        if state_[2] < -np.pi:
+            state_[2] += 2*np.pi
 
-        if self.state[4] > np.pi:
-            self.state[4] -= 2*np.pi
-        if self.state[4] < -np.pi:
-            self.state[4] += 2*np.pi
+        if state_[4] > np.pi:
+            state_[4] -= 2*np.pi
+        if state_[4] < -np.pi:
+            state_[4] += 2*np.pi
 
+        self.state = np.append(state_, self.dynamics_state)
         return self.state
 
     def checkLimitsExceed(self, checkForSoftLimits=False):
         if checkForSoftLimits:
             if (np.any(np.greater_equal(self.dynamics_state,
-                                        self.soft_high))
+                                        self.soft_high[6:12]))
                 or np.any(np.less_equal(self.dynamics_state,
-                                        -self.soft_high))):
+                                        -self.soft_high[6:12]))):
                 return True
         else:
             if (np.any(np.greater_equal(self.dynamics_state,
-                                        self.high))
+                                        self.high[6:12]))
                 or np.any(np.less_equal(self.dynamics_state,
-                                        -self.high))):
+                                        -self.high[6:12]))):
                 return True
         return False
 
@@ -555,3 +563,22 @@ class Quad(gym.Env):
         self.sym_wk = self.sym_wk.deserialize()
         self.sym_x = self.sym_x.deserialize()
         self.sym_xdot = self.sym_xdot.deserialize()
+
+
+class RLWrapper(gym.Env):
+    def __init__(self, env):
+        super(RLWrapper, self).__init__()
+        self.env = env
+
+        self.observation_space = spaces.Box(low=-env.high[0:6],
+                                            high=env.high[0:6])
+
+    def step(self, action):
+        state, reward, done, info = self.env.step(action)
+        state = state[0:6]
+        return state, reward, done, info
+
+    def reset(self):
+        state = self.env.reset()
+        state = state[0:6]
+        return state

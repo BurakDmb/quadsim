@@ -3,28 +3,6 @@ import numpy as np
 
 
 class TestEnvironments(unittest.TestCase):
-    def test_lqr(self):
-        from quadsim.src.controllers.lqr import LQR
-        from quadsim.src.envs.quad import Quad
-        t_end = 5
-        control_freq = 50
-        env = Quad(
-            is_linear=True, is_stochastic=False,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
-        lqr = LQR(env)
-        obs = env.reset()
-        done = False
-        while not done:
-            action = lqr.predict(obs, deterministic=True)
-            if type(action) is tuple:
-                action = action[0]
-            obs, reward, done, _ = env.step(action)
-        evalRewardHist(self, env, 1, t_end, control_freq)
-        evalSolutionHist(self, env, 1, t_end, control_freq)
-
     def test_process_rewardMinMaxLimit(self):
         # pip install multiprocess
         from multiprocess import Process, Queue
