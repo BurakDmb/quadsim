@@ -425,7 +425,6 @@ class Quad(gym.Env):
             self.history.sol_x = (np.column_stack((self.history.sol_x,
                                                    next_obs))
                                   if self.history.sol_x.size else next_obs)
-
             self.history.sol_t = (
                 np.column_stack((
                     self.history.sol_t, next_time)
