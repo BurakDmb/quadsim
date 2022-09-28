@@ -29,7 +29,8 @@ w_min = np.rint(np.sqrt((m * g)/(4*b)))
 
 u1_max = u2_max = d*b*((w_max**2)-(w_min**2))
 u3_max = k*2*((w_max**2)-(w_min**2))
-u_max_scale = 0.5
+u_max_scale = 0.6
+u_min = 0.01
 
 A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0],
@@ -67,8 +68,8 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([5, 0, 0.001, 0, 0.001, 0])
-R_coefficients = np.array([1, 0.1, 0.1])
+Q_coefficients = np.array([10, 0, 10, 0, 10, 0])
+R_coefficients = np.array([2, 2, 2])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
@@ -196,6 +197,7 @@ class Quad(gym.Env):
         self.G = G
         self.H = H
 
+        self.is_linear = is_linear
         self.solver_func = linear_quad_dynamics if is_linear else \
             nonlinear_quad_dynamics
 
@@ -204,6 +206,7 @@ class Quad(gym.Env):
         self.u3_max = u3_max
         self.u_max_scale = u_max_scale
         self.u_max = np.float32(np.array([u1_max, u2_max, u3_max]))
+        self.u_min = u_min
 
         self.u_max_normalized = (self.u_max / self.u_max)
 
@@ -371,6 +374,11 @@ class Quad(gym.Env):
         action_clipped = np.maximum(
             np.minimum(action, self.u_max_normalized),
             -self.u_max_normalized)
+
+        if not self.is_linear:
+            # minimum torque limitting for real life quadcopter matching.
+            action_clipped[np.ma.masked_inside(
+                action_clipped, -self.u_min, self.u_min).mask] = 0
 
         # Custom input limit only works for smaller
         # values than u_max_normalized.
