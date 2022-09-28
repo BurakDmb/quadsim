@@ -1,9 +1,7 @@
 
 class Plotter:
     def __init__(self, controller_name):
-        import matplotlib
         import matplotlib.pyplot as plt
-        matplotlib.use("GTK3Agg")
         self.plt = plt
         self.name = controller_name + '_'
         import os

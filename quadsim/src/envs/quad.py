@@ -5,18 +5,31 @@ from scipy.integrate import solve_ivp
 from quadsim.src.envs.util_history import History
 import casadi
 
-Ixx = 0.0213
-Iyy = 0.02217
-Izz = 0.0282
-m = 1.587
-g = 9.81
+Ixx = 0.0213  # kgm^2
+Iyy = 0.02217  # kgm^2
+Izz = 0.0282  # kgm^2
+
+
+m = 1.587  # kg
+g = 9.81  # ms^-2
 mg = m*g
-d = 0.243
-b = 4.0687e-7/((2*np.pi/60)**2)
-k = 8.4367e-9/((2*np.pi/60)**2)
+d = 0.450  # m
+b = 4.0687e-7/((2*np.pi/60)**2)  # kgm
+k = 8.4367e-9/((2*np.pi/60)**2)  # kgm^2
 
 db = d*b
-w_max = 4720 * (2*np.pi/60)
+w_max = 4720 * (2*np.pi/60)  # rad/s
+
+# motor min and max speed values, max=4720 and min=3093 rpm
+# by the reference (converted into rad/s values)
+# the minimum speed value will be calculated from
+# the given mass, g and b value.
+w_max = w_max
+w_min = np.rint(np.sqrt((m * g)/(4*b)))
+
+u1_max = u2_max = d*b*((w_max**2)-(w_min**2))
+u3_max = k*2*((w_max**2)-(w_min**2))
+u_max_scale = 0.5
 
 A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0],
@@ -25,12 +38,12 @@ A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1],
               [0, 0, 0, 0, 0, 0]])
 
-B = np.array([[0,       0,          0],
-              [1.0/Ixx, 0,          0],
-              [0,       0,          0],
-              [0,       1.0/Iyy,    0],
-              [0,       0,          0],
-              [0,       0,          1.0/Izz]])
+B = np.array([[0,       0,                          0],
+              [(1.0/Ixx)*(u1_max*u_max_scale), 0,   0],
+              [0,       0,                          0],
+              [0, (1.0/Iyy)*(u2_max*u_max_scale),   0],
+              [0,       0,                          0],
+              [0,       0,              (1.0/Izz)*(u3_max*u_max_scale)]])
 
 C = np.array([[1, 0, 0, 0, 0, 0],
               [0, 1, 0, 0, 0, 0],
@@ -53,17 +66,20 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 1, 0],
               [0, 0, 0, 0, 0, 1]])
 
-Q_coefficients = np.array([200, 1, 200, 1, 200, 1])
-R_coefficients = np.array([10, 10, 10])
+# Higher the coefficient, higher the importance and the effect.
+Q_coefficients = np.array([5, 0, 0.001, 0, 0.001, 0])
+R_coefficients = np.array([1, 0.1, 0.1])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
 # Below the link for the IMU used in pixhawk 2.1 cube
 # https://ardupilot.org/copter/docs/common-thecube-overview.html
 # https://invensense.tdk.com/products/motion-tracking/9-axis/mpu-9250/
-soft_phidot = np.radians(2000)
-soft_thetadot = np.radians(2000)
-soft_psidot = np.radians(2000)
+
+# Experimental soft limits.
+soft_phidot = 4*np.pi
+soft_thetadot = 4*np.pi
+soft_psidot = 4*np.pi
 
 
 # Vectorized dynamics function usage:
@@ -108,12 +124,15 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
     phidot = x[1, :]
     thetadot = x[3, :]
     psidot = x[5, :]
-    phidotdot = (np.dot((Iyy-Izz),
-                        np.multiply(thetadot, psidot)) + U[0, :])/Ixx
-    thetadotdot = (np.dot((Izz-Ixx),
-                          np.multiply(phidot, psidot)) + U[1, :])/Iyy
-    psidotdot = (np.dot((Ixx-Iyy),
-                        np.multiply(phidot, thetadot)) + U[2, :])/Izz
+    phidotdot = (np.dot(
+        (Iyy-Izz),
+        np.multiply(thetadot, psidot)) + (U[0, :])*(u1_max*u_max_scale))/Ixx
+    thetadotdot = (np.dot(
+        (Izz-Ixx),
+        np.multiply(phidot, psidot)) + (U[1, :])*(u2_max*u_max_scale))/Iyy
+    psidotdot = (np.dot(
+        (Ixx-Iyy),
+        np.multiply(phidot, thetadot)) + (U[2, :])*(u3_max*u_max_scale))/Izz
 
     dxdt = np.array([x[1, :], phidotdot, x[3, :],
                     thetadotdot, x[5, :], psidotdot])
@@ -135,17 +154,17 @@ class Quad(gym.Env):
             self, is_linear=True, is_stochastic=False,
             t_start=0, t_end=3, simulation_freq=250,
             control_freq=50,
-            dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-            noise_w_mean=0, noise_w_variance=0.01,
-            noise_v_mean=0, noise_v_variance=0.01,
+            dynamics_state=np.array([0., 0., 0., 0., 0., 0.]),
+            noise_w_mean=0, noise_w_variance=0.05,
+            noise_v_mean=0, noise_v_variance=0.05,
             keep_history=True,
             random_state_seed=0,
             random_noise_seed_wk=0,
             random_noise_seed_vk=0,
             set_constant_reference=False,
-            constant_reference=np.array([1, 0, 1, 0, 1, 0]),
+            constant_reference=np.array([1., 0., 1., 0., 1., 0.]),
             set_custom_u_limit=False,
-            custom_u_high=np.array([1, 1, 1]),
+            custom_u_high=np.array([1., 1., 1.]),
             checkForSoftLimits=False,
             eval_env=False,
             use_casadi=True):
@@ -180,16 +199,13 @@ class Quad(gym.Env):
         self.solver_func = linear_quad_dynamics if is_linear else \
             nonlinear_quad_dynamics
 
-        # motor min and max speed values, max=4720 and min=3093 rpm
-        # by the reference (converted into rad/s values)
-        # the minimum speed value will be calculated from
-        # the given mass, g and b value.
-        self.w_max = w_max
-        self.w_min = np.rint(np.sqrt((m * g)/(4*b)))
-
-        u1_max = u2_max = d*b*((self.w_max**2)-(self.w_min**2))
-        u3_max = k*2*((self.w_max**2)-(self.w_min**2))
+        self.u1_max = u1_max
+        self.u2_max = u2_max
+        self.u3_max = u3_max
+        self.u_max_scale = u_max_scale
         self.u_max = np.float32(np.array([u1_max, u2_max, u3_max]))
+
+        self.u_max_normalized = (self.u_max / self.u_max)
 
         self.phi_max = (u1_max/Ixx)*(((t_end-t_start)**2)/2)
         self.phidot_max = (u1_max/Ixx)*(t_end-t_start)
@@ -230,17 +246,19 @@ class Quad(gym.Env):
 
         self.R_coefficients = R_coefficients
         self.R = np.identity(B.shape[1])
-        self.R[0, 0] = self.R_coefficients[0] / (self.u_max[0]**2)
-        self.R[1, 1] = self.R_coefficients[1] / (self.u_max[1]**2)
-        self.R[2, 2] = self.R_coefficients[2] / (self.u_max[2]**2)
+        self.R[0, 0] = self.R_coefficients[0] / (self.u_max_normalized[0]**2)
+        self.R[1, 1] = self.R_coefficients[1] / (self.u_max_normalized[1]**2)
+        self.R[2, 2] = self.R_coefficients[2] / (self.u_max_normalized[2]**2)
 
         self.action_len = len(self.u_max)
         self.state_len = len(self.high)
         self.dynamics_len = len(self.high[0:6])
-        self.action_space = spaces.Box(low=-self.u_max,
-                                       high=self.u_max)
-        self.observation_space = spaces.Box(low=-self.high,
-                                            high=self.high)
+        self.action_space = spaces.Box(
+            low=-self.u_max_normalized,
+            high=self.u_max_normalized)
+        self.observation_space = spaces.Box(
+            low=-self.high,
+            high=self.high)
 
         self.t_start = t_start
         self.t_end = t_end
@@ -282,22 +300,22 @@ class Quad(gym.Env):
                 self.sym_xdot = casadi.vertcat(
                     self.sym_x[1],
                     (((Iyy-Izz) @ (self.sym_x[3]*self.sym_x[5])) +
-                        self.sym_u[0]) / Ixx,
+                        (self.sym_u[0])*(u1_max*u_max_scale)) / Ixx,
                     self.sym_x[3],
                     (((Izz-Ixx) @ (self.sym_x[1]*self.sym_x[5])) +
-                        self.sym_u[1]) / Iyy,
+                        (self.sym_u[1])*(u2_max*u_max_scale)) / Iyy,
                     self.sym_x[5],
                     (((Ixx-Iyy) @ (self.sym_x[1]*self.sym_x[3])) +
-                        self.sym_u[2]) / Izz,
+                        (self.sym_u[2])*(u3_max*u_max_scale)) / Izz,
                 ) + G @ self.sym_wk
             else:
                 self.sym_xdot = casadi.vertcat(
                     self.sym_x[1],
-                    (self.sym_u[0]) / Ixx,
+                    ((self.sym_u[0])*(u1_max*u_max_scale)) / Ixx,
                     self.sym_x[3],
-                    (self.sym_u[1]) / Iyy,
+                    ((self.sym_u[1])*(u2_max*u_max_scale)) / Iyy,
                     self.sym_x[5],
-                    (self.sym_u[2]) / Izz,
+                    ((self.sym_u[2])*(u3_max*u_max_scale)) / Izz,
                 ) + G @ self.sym_wk
 
             # Create an integrator
@@ -327,6 +345,7 @@ class Quad(gym.Env):
             # self.history.env_name = self.__class__.__name__
             self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
 
+    # Actions space is defined in self.action_space.
     def step(self, action):
 
         if self.is_stochastic:
@@ -347,12 +366,19 @@ class Quad(gym.Env):
         time_range = (self.current_time,
                       self.current_time + self.control_timestep)
 
-        action_clipped = np.maximum(np.minimum(action, self.u_max),
-                                    -self.u_max)
+        # action_clipped is the torque commands with the
+        # unit of Nm, not normalized.
+        action_clipped = np.maximum(
+            np.minimum(action, self.u_max_normalized),
+            -self.u_max_normalized)
 
+        # Custom input limit only works for smaller
+        # values than u_max_normalized.
         if self.set_custom_u_limit:
-            action_clipped = np.maximum(np.minimum(action, self.custom_u_high),
-                                        -self.custom_u_high)
+            action_clipped = np.maximum(
+                np.minimum(action_clipped, self.custom_u_high),
+                -self.custom_u_high)
+
         u1, u2, u3 = action_clipped
         # w1s, w2s, w3s, w4s = self.motor_mixing(u1, u2, u3)
 
@@ -412,6 +438,10 @@ class Quad(gym.Env):
         while current_reference_diff[4] < -np.pi:
             current_reference_diff[4] += 2*np.pi
 
+        # Since each term is normalized by its max value, to normalize the
+        # entire reward/cost function, we can simply
+        # normalize by dividing the sum of coefficients.
+        # Reward is normalized and currently it can be in the range of [-1, 0].
         reward = -(
             ((current_reference_diff.T @ self.Q @ current_reference_diff)) +
             (((action_clipped.T @ self.R @ action_clipped)))
@@ -570,8 +600,15 @@ class RLWrapper(gym.Env):
         super(RLWrapper, self).__init__()
         self.env = env
 
-        self.observation_space = spaces.Box(low=-env.high[0:6],
-                                            high=env.high[0:6])
+        self.action_space = spaces.Box(
+            low=-env.u_max_normalized,
+            high=env.u_max_normalized)
+
+        self.observation_space = spaces.Box(
+            low=-env.high[0:6],
+            high=env.high[0:6])
+
+        self.history = self.env.history
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
