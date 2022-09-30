@@ -1,10 +1,7 @@
 import numpy as np
 import os
 
-# from quadsim.src.envs.quad import DeterministicQuad
 from quadsim.src.envs.quad import Quad
-# from quadsim.src.envs.quad import linear_quad_dynamics
-# from quadsim.src.envs.quad import nonlinear_quad_dynamics
 
 from quadsim.src.plotter import Plotter
 

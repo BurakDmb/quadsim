@@ -13,7 +13,7 @@ Izz = 0.0282  # kgm^2
 m = 1.587  # kg
 g = 9.81  # ms^-2
 mg = m*g
-d = 0.450  # m
+d = 0.243  # m
 b = 4.0687e-7/((2*np.pi/60)**2)  # kgm
 k = 8.4367e-9/((2*np.pi/60)**2)  # kgm^2
 
@@ -46,12 +46,14 @@ B = np.array([[0,       0,                          0],
               [0,       0,                          0],
               [0,       0,              (1.0/Izz)*(u3_max*u_max_scale)]])
 
-C = np.array([[1, 0, 0, 0, 0, 0],
-              [0, 1, 0, 0, 0, 0],
-              [0, 0, 1, 0, 0, 0],
-              [0, 0, 0, 1, 0, 0],
-              [0, 0, 0, 0, 1, 0],
-              [0, 0, 0, 0, 0, 1]])
+C = np.eye(6)
+
+D = np.array([[0, 0, 0],
+              [0, 0, 0],
+              [0, 0, 0],
+              [0, 0, 0],
+              [0, 0, 0],
+              [0, 0, 0]])
 
 G = np.array([[1, 0, 0, 0, 0, 0],
               [0, 1, 0, 0, 0, 0],
@@ -68,8 +70,8 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([10, 1, 10, 1, 10, 1])
-R_coefficients = np.array([50, 50, 50])
+Q_coefficients = np.array([10, 0.1, 10.0, 0.1, 10.0, 0.1])
+R_coefficients = np.array([0.01, 0.01, 0.01])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
@@ -145,11 +147,11 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
 
 class Quad(gym.Env):
     """
-    Linear and Stochastic Quadcopter System Dynamics
+    Configurable Linear/Nonlinear and Deterministic/Stochastic
+    Quadcopter System Dynamics
     System Input(actions): U(U1, U2, U3) torque values
     System Output(states): X = phi, phidot, theta, thetadot, psi, psidot
     """
-    metadata = {'render.modes': ['human']}
 
     def __init__(
             self, is_linear=True, is_stochastic=False,
@@ -194,6 +196,7 @@ class Quad(gym.Env):
         self.A = A
         self.B = B
         self.C = C
+        self.D = D
         self.G = G
         self.H = H
 
@@ -240,12 +243,12 @@ class Quad(gym.Env):
         # Quadratic Cost/Reward Matrix
         self.Q_coefficients = Q_coefficients
         self.Q = np.identity(A.shape[0])
-        self.Q[0, 0] = self.Q_coefficients[0] / (self.soft_high[0]**2)
-        self.Q[1, 1] = self.Q_coefficients[1] / (self.soft_high[1]**2)
-        self.Q[2, 2] = self.Q_coefficients[2] / (self.soft_high[2]**2)
-        self.Q[3, 3] = self.Q_coefficients[3] / (self.soft_high[3]**2)
-        self.Q[4, 4] = self.Q_coefficients[4] / (self.soft_high[4]**2)
-        self.Q[5, 5] = self.Q_coefficients[5] / (self.soft_high[5]**2)
+        self.Q[0, 0] = self.Q_coefficients[0]  # / (self.soft_high[0]**2)
+        self.Q[1, 1] = self.Q_coefficients[1]  # / (self.soft_high[1]**2)
+        self.Q[2, 2] = self.Q_coefficients[2]  # / (self.soft_high[2]**2)
+        self.Q[3, 3] = self.Q_coefficients[3]  # / (self.soft_high[3]**2)
+        self.Q[4, 4] = self.Q_coefficients[4]  # / (self.soft_high[4]**2)
+        self.Q[5, 5] = self.Q_coefficients[5]  # / (self.soft_high[5]**2)
 
         self.R_coefficients = R_coefficients
         self.R = np.identity(B.shape[1])
@@ -260,8 +263,8 @@ class Quad(gym.Env):
             low=-self.u_max_normalized,
             high=self.u_max_normalized)
         self.observation_space = spaces.Box(
-            low=-self.high,
-            high=self.high)
+            low=-self.soft_high,
+            high=self.soft_high)
 
         self.t_start = t_start
         self.t_end = t_end
@@ -453,7 +456,7 @@ class Quad(gym.Env):
         reward = -(
             ((current_reference_diff.T @ self.Q @ current_reference_diff)) +
             (((action_clipped.T @ self.R @ action_clipped)))
-            ).item() / (self.Q_coefficients.sum() + self.R_coefficients.sum())
+            ).item() / (np.trace(self.Q) + np.trace(self.R))
 
         if self.keep_history:
             self.history.sol_x_wo_noise = (np.column_stack(
@@ -539,7 +542,7 @@ class Quad(gym.Env):
 
         # Generate a random reference(in radians)
         self.reference_state = self.rnd_state.uniform(
-            low=-np.pi, high=np.pi, size=6)
+            low=-np.pi, high=np.pi, size=self.dynamics_len)
 
         self.reference_state[[1, 3, 5]] = 0.0
 
@@ -613,8 +616,8 @@ class RLWrapper(gym.Env):
             high=env.u_max_normalized)
 
         self.observation_space = spaces.Box(
-            low=-env.high[0:6],
-            high=env.high[0:6])
+            low=-env.soft_high[0:6],
+            high=env.soft_high[0:6])
 
         self.history = self.env.history
 
