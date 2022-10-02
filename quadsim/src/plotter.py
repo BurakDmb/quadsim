@@ -1,9 +1,4 @@
 
-# TODO: Add a new plot method for 4,3 plot in a single figure
-# roll, pitch, yaw (both ref and current)
-# rolldot, pitchdot and yawdot (both ref and current)
-# torque roll, torque pitch, torque yaw
-# rewards, actions, empty for future use.
 class Plotter:
     def __init__(self, controller_name):
         import matplotlib.pyplot as plt

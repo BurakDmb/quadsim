@@ -70,8 +70,8 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([10, 0.1, 10.0, 0.1, 10.0, 0.1])
-R_coefficients = np.array([0.01, 0.01, 0.01])
+Q_coefficients = np.array([3.0, 6.0, 3.0, 6.0, 3.0, 6.0])
+R_coefficients = np.array([1.0, 1.0, 1.0])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
@@ -168,7 +168,7 @@ class Quad(gym.Env):
             constant_reference=np.array([1., 0., 1., 0., 1., 0.]),
             set_custom_u_limit=False,
             custom_u_high=np.array([1., 1., 1.]),
-            checkForSoftLimits=False,
+            checkForSoftLimits=True,
             eval_env=False,
             use_casadi=True):
 
@@ -211,7 +211,7 @@ class Quad(gym.Env):
         self.u_max = np.float32(np.array([u1_max, u2_max, u3_max]))
         self.u_min = u_min
 
-        self.u_max_normalized = (self.u_max / self.u_max)
+        self.u_max_normalized = (self.u_max / self.u_max)*self.u_max_scale
 
         self.phi_max = (u1_max/Ixx)*(((t_end-t_start)**2)/2)
         self.phidot_max = (u1_max/Ixx)*(t_end-t_start)
@@ -243,12 +243,12 @@ class Quad(gym.Env):
         # Quadratic Cost/Reward Matrix
         self.Q_coefficients = Q_coefficients
         self.Q = np.identity(A.shape[0])
-        self.Q[0, 0] = self.Q_coefficients[0]  # / (self.soft_high[0]**2)
-        self.Q[1, 1] = self.Q_coefficients[1]  # / (self.soft_high[1]**2)
-        self.Q[2, 2] = self.Q_coefficients[2]  # / (self.soft_high[2]**2)
-        self.Q[3, 3] = self.Q_coefficients[3]  # / (self.soft_high[3]**2)
-        self.Q[4, 4] = self.Q_coefficients[4]  # / (self.soft_high[4]**2)
-        self.Q[5, 5] = self.Q_coefficients[5]  # / (self.soft_high[5]**2)
+        self.Q[0, 0] = self.Q_coefficients[0] / (self.soft_high[0]**2)
+        self.Q[1, 1] = self.Q_coefficients[1] / (self.soft_high[1]**2)
+        self.Q[2, 2] = self.Q_coefficients[2] / (self.soft_high[2]**2)
+        self.Q[3, 3] = self.Q_coefficients[3] / (self.soft_high[3]**2)
+        self.Q[4, 4] = self.Q_coefficients[4] / (self.soft_high[4]**2)
+        self.Q[5, 5] = self.Q_coefficients[5] / (self.soft_high[5]**2)
 
         self.R_coefficients = R_coefficients
         self.R = np.identity(B.shape[1])
@@ -456,7 +456,7 @@ class Quad(gym.Env):
         reward = -(
             ((current_reference_diff.T @ self.Q @ current_reference_diff)) +
             (((action_clipped.T @ self.R @ action_clipped)))
-            ).item() / (np.trace(self.Q) + np.trace(self.R))
+            ).item() / (self.Q_coefficients.sum() + self.R_coefficients.sum())
 
         if self.keep_history:
             self.history.sol_x_wo_noise = (np.column_stack(

@@ -27,19 +27,19 @@ class TestEnvironments(unittest.TestCase):
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
-                return np.array([10, 0, 0])
+                return np.array([0.005, 0, 0])
 
         class DummyController2:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 10, 0])
+                return np.array([0, 0.005, 0])
 
         class DummyController3:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0, 10])
+                return np.array([0, 0, 0.005])
 
         class DummyController4:
             def predict(self, state_error, deterministic=True):
-                return np.array([10, 10, 10])
+                return np.array([0.005, 0.005, 0.005])
 
         control_freq = 50
         t_end = 5
@@ -138,19 +138,19 @@ class TestEnvironments(unittest.TestCase):
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
-                return np.array([10, 0, 0])
+                return np.array([0.005, 0, 0])
 
         class DummyController2:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 10, 0])
+                return np.array([0, 0.005, 0])
 
         class DummyController3:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0, 10])
+                return np.array([0, 0, 0.005])
 
         class DummyController4:
             def predict(self, state_error, deterministic=True):
-                return np.array([10, 10, 10])
+                return np.array([0.005, 0.005, 0.005])
 
         control_freq = 50
         t_end = 5
