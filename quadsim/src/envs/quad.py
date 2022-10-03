@@ -619,7 +619,8 @@ class RLWrapper(gym.Env):
             low=-env.soft_high[0:6],
             high=env.soft_high[0:6])
 
-        self.history = self.env.history
+        if "history" in dir(self.env):
+            self.history = self.env.history
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
