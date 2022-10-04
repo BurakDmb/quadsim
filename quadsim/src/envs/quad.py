@@ -70,8 +70,8 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([3.0, 6.0, 3.0, 6.0, 3.0, 6.0])
-R_coefficients = np.array([1.0, 1.0, 1.0])
+Q_coefficients = np.array([1.0, 0.5, 1.0, 0.5, 1.0, 0.5])
+R_coefficients = np.array([0.001, 0.001, 0.001])
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
@@ -80,9 +80,9 @@ R_coefficients = np.array([1.0, 1.0, 1.0])
 # https://invensense.tdk.com/products/motion-tracking/9-axis/mpu-9250/
 
 # Experimental soft limits.
-soft_phidot = 4*np.pi
-soft_thetadot = 4*np.pi
-soft_psidot = 4*np.pi
+soft_phidot = 2*np.pi
+soft_thetadot = 2*np.pi
+soft_psidot = 2*np.pi
 
 
 # Vectorized dynamics function usage:
@@ -242,23 +242,24 @@ class Quad(gym.Env):
 
         # Quadratic Cost/Reward Matrix
         self.Q_coefficients = Q_coefficients
-        self.Q = np.identity(A.shape[0])
-        self.Q[0, 0] = self.Q_coefficients[0] / (self.soft_high[0]**2)
-        self.Q[1, 1] = self.Q_coefficients[1] / (self.soft_high[1]**2)
-        self.Q[2, 2] = self.Q_coefficients[2] / (self.soft_high[2]**2)
-        self.Q[3, 3] = self.Q_coefficients[3] / (self.soft_high[3]**2)
-        self.Q[4, 4] = self.Q_coefficients[4] / (self.soft_high[4]**2)
-        self.Q[5, 5] = self.Q_coefficients[5] / (self.soft_high[5]**2)
+        self.Q = np.zeros((self.A.shape[0], self.A.shape[0]))
+        self.Q[0, 0] = self.Q_coefficients[0]
+        self.Q[1, 1] = self.Q_coefficients[1]
+        self.Q[2, 2] = self.Q_coefficients[2]
+        self.Q[3, 3] = self.Q_coefficients[3]
+        self.Q[4, 4] = self.Q_coefficients[4]
+        self.Q[5, 5] = self.Q_coefficients[5]
 
         self.R_coefficients = R_coefficients
-        self.R = np.identity(B.shape[1])
-        self.R[0, 0] = self.R_coefficients[0] / (self.u_max_normalized[0]**2)
-        self.R[1, 1] = self.R_coefficients[1] / (self.u_max_normalized[1]**2)
-        self.R[2, 2] = self.R_coefficients[2] / (self.u_max_normalized[2]**2)
+        self.R = np.zeros((self.B.shape[1], self.B.shape[1]))
+        self.R[0, 0] = self.R_coefficients[0]
+        self.R[1, 1] = self.R_coefficients[1]
+        self.R[2, 2] = self.R_coefficients[2]
 
         self.action_len = len(self.u_max)
         self.state_len = len(self.high)
         self.dynamics_len = len(self.high[0:6])
+        self.internal_dynamics_len = self.dynamics_len
         self.action_space = spaces.Box(
             low=-self.u_max_normalized,
             high=self.u_max_normalized)
@@ -449,14 +450,42 @@ class Quad(gym.Env):
         while current_reference_diff[4] < -np.pi:
             current_reference_diff[4] += 2*np.pi
 
+        ref_diff_normalized = np.zeros((self.internal_dynamics_len, ))
+        ref_diff_normalized[0] = (
+            current_reference_diff[0] / self.soft_high[0])
+        ref_diff_normalized[1] = (
+            current_reference_diff[1] / self.soft_high[1])
+        ref_diff_normalized[2] = (
+            current_reference_diff[2] / self.soft_high[2])
+        ref_diff_normalized[3] = (
+            current_reference_diff[3] / self.soft_high[3])
+        ref_diff_normalized[4] = (
+            current_reference_diff[4] / self.soft_high[4])
+        ref_diff_normalized[5] = (
+            current_reference_diff[5] / self.soft_high[5])
+
+        action_normalized = action_clipped / self.u_max_normalized
+
         # Since each term is normalized by its max value, to normalize the
         # entire reward/cost function, we can simply
         # normalize by dividing the sum of coefficients.
         # Reward is normalized and currently it can be in the range of [-1, 0].
-        reward = -(
-            ((current_reference_diff.T @ self.Q @ current_reference_diff)) +
-            (((action_clipped.T @ self.R @ action_clipped)))
-            ).item() / (self.Q_coefficients.sum() + self.R_coefficients.sum())
+        reward = -np.sqrt((
+            ((ref_diff_normalized.T @ self.Q @ ref_diff_normalized)) +
+            (((action_normalized.T @ self.R @ action_normalized)))
+            ).item() / (self.Q.sum() + self.R.sum()))
+
+        done = False
+        if self.checkLimitsExceed(self.checkForSoftLimits):
+            self.env_reset_flag = True
+            done = True
+            reward = -1
+
+        if (self.episode_timestep >= self.t_end*self.control_freq):
+            done = True
+            self.env_reset_flag = True
+            if self.keep_history:
+                self.t = np.reshape(self.history.sol_t, -1)
 
         if self.keep_history:
             self.history.sol_x_wo_noise = (np.column_stack(
@@ -466,7 +495,6 @@ class Quad(gym.Env):
             self.history.sol_x = (np.column_stack((self.history.sol_x,
                                                    next_obs))
                                   if self.history.sol_x.size else next_obs)
-
             self.history.sol_t = (
                 np.column_stack((
                     self.history.sol_t, next_time)
@@ -518,16 +546,6 @@ class Quad(gym.Env):
         self.episode_timestep += 1
         info = {"episode": None}
 
-        done = False
-        if self.checkLimitsExceed(self.checkForSoftLimits):
-            self.env_reset_flag = True
-            done = True
-
-        if (self.episode_timestep >= self.t_end*self.control_freq):
-            done = True
-            self.env_reset_flag = True
-            if self.keep_history:
-                self.t = np.reshape(self.history.sol_t, -1)
         return self.state, reward, done, info
 
     def reset(self):
