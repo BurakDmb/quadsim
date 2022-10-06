@@ -32,6 +32,8 @@ u3_max = k*2*((w_max**2)-(w_min**2))
 u_max_scale = 0.5
 u_min = 0.05
 
+random_ref_mean = np.pi/4
+
 A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0],
               [0, 0, 0, 1, 0, 0],
@@ -70,8 +72,10 @@ H = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 1]])
 
 # Higher the coefficient, higher the importance and the effect.
-Q_coefficients = np.array([1.0, 0.5, 1.0, 0.5, 1.0, 0.5])
-R_coefficients = np.array([0.001, 0.001, 0.001])
+
+Q_coefficients = np.array([0.8, 0.2, 0.8, 0.2, 0.8, 0.2])
+R_coefficients = np.array([0.1, 0.1, 0.1])
+delta_u_coefficient = 0.5
 
 # Defining soft limits for physical life quadcopter
 # maximum angular speeds, which is 2000deg/s
@@ -153,24 +157,54 @@ class Quad(gym.Env):
     System Output(states): X = phi, phidot, theta, thetadot, psi, psidot
     """
 
-    def __init__(
-            self, is_linear=True, is_stochastic=False,
-            t_start=0, t_end=3, simulation_freq=250,
-            control_freq=50,
-            dynamics_state=np.array([0., 0., 0., 0., 0., 0.]),
-            noise_w_mean=0, noise_w_variance=0.05,
-            noise_v_mean=0, noise_v_variance=0.05,
-            keep_history=True,
-            random_state_seed=0,
-            random_noise_seed_wk=0,
-            random_noise_seed_vk=0,
-            set_constant_reference=False,
-            constant_reference=np.array([1., 0., 1., 0., 1., 0.]),
-            set_custom_u_limit=False,
-            custom_u_high=np.array([1., 1., 1.]),
-            checkForSoftLimits=True,
-            eval_env=False,
-            use_casadi=True):
+    def __init__(self, **kwargs):
+        is_linear = kwargs.get(
+            'is_linear', True)
+        is_stochastic = kwargs.get(
+            'is_stochastic', False)
+        t_start = kwargs.get(
+            't_start', 0)
+        t_end = kwargs.get(
+            't_end', 3)
+        simulation_freq = kwargs.get(
+            'simulation_freq', 250)
+        control_freq = kwargs.get(
+            'control_freq', 250)
+        dynamics_state = kwargs.get(
+            'dynamics_state', np.array([0., 0., 0., 0., 0., 0.]))
+        noise_w_mean = kwargs.get(
+            'noise_w_mean', 0)
+        noise_w_variance = kwargs.get(
+            'noise_w_variance', 0.05)
+        noise_v_mean = kwargs.get(
+            'noise_v_mean', 0)
+        noise_v_variance = kwargs.get(
+            'noise_v_variance', 0.05)
+        keep_history = kwargs.get(
+            'keep_history', True)
+        random_state_seed = kwargs.get(
+            'random_state_seed', 0)
+        random_noise_seed_wk = kwargs.get(
+            'random_noise_seed_wk', 0)
+        random_noise_seed_vk = kwargs.get(
+            'random_noise_seed_vk', 0)
+        set_constant_reference = kwargs.get(
+            'set_constant_reference', False)
+        constant_reference = kwargs.get(
+            'constant_reference', np.array([1., 0., 1., 0., 1., 0.]))
+        set_custom_u_limit = kwargs.get(
+            'set_custom_u_limit', False)
+        custom_u_high = kwargs.get(
+            'custom_u_high', np.array([1., 1., 1.]))
+        checkForSoftLimits = kwargs.get(
+            'checkForSoftLimits', True)
+        eval_enabled = kwargs.get(
+            'eval_enabled', False)
+        use_casadi = kwargs.get(
+            'use_casadi', True)
+        set_eval_constant_reference = kwargs.get(
+            'set_eval_constant_reference', True)
+        self.env_id = kwargs.get('env_id', 0)
 
         super(Quad, self).__init__()
         self.Ixx = Ixx
@@ -183,11 +217,14 @@ class Quad(gym.Env):
         self.b = b
         self.k = k
 
-        self.set_constant_reference = set_constant_reference
+        if eval_enabled:
+            self.set_constant_reference = set_eval_constant_reference
+        else:
+            self.set_constant_reference = set_constant_reference
         self.constant_reference = constant_reference
         self.set_custom_u_limit = set_custom_u_limit
         self.custom_u_high = custom_u_high
-        self.eval_env = eval_env
+        self.eval_env = eval_enabled
 
         self.checkForSoftLimits = checkForSoftLimits
 
@@ -223,18 +260,18 @@ class Quad(gym.Env):
         self.psidot_max = (u3_max/Izz)*(t_end-t_start)
 
         high_ = np.float32(np.array([
-            np.pi,
+            np.pi/2,
             self.phidot_max,
-            np.pi,
+            np.pi/2,
             self.thetadot_max,
             np.pi,
             self.psidot_max]))
         self.high = np.append(high_, high_)
 
         soft_high_ = np.float32(np.array([
-            np.pi,
+            np.pi/2,
             soft_phidot,
-            np.pi,
+            np.pi/2,
             soft_thetadot,
             np.pi,
             soft_psidot]))
@@ -285,9 +322,11 @@ class Quad(gym.Env):
 
         self.rnd_state = np.random.default_rng(random_state_seed)
         self.env_reset_flag = False
+        self.env_hard_reset_flag = False
         self.keep_history = keep_history
         self.use_casadi = use_casadi
         self.casadi_serialized = False
+        self.prev_u_normalized = np.array([0.0, 0.0, 0.0])
 
         # Stochastic env properties
         self.is_stochastic = is_stochastic
@@ -466,22 +505,27 @@ class Quad(gym.Env):
 
         action_normalized = action_clipped / self.u_max_normalized
 
+        delta_u = (
+            ((action_normalized - self.prev_u_normalized)/2)**2).mean()
+
         # Since each term is normalized by its max value, to normalize the
         # entire reward/cost function, we can simply
         # normalize by dividing the sum of coefficients.
         # Reward is normalized and currently it can be in the range of [-1, 0].
         reward = -np.sqrt((
             ((ref_diff_normalized.T @ self.Q @ ref_diff_normalized)) +
-            (((action_normalized.T @ self.R @ action_normalized)))
+            (((action_normalized.T @ self.R @ action_normalized))) +
+            delta_u_coefficient * delta_u
             ).item() / (self.Q.sum() + self.R.sum()))
 
         done = False
         if self.checkLimitsExceed(self.checkForSoftLimits):
             self.env_reset_flag = True
+            self.env_hard_reset_flag = True
             done = True
             reward = -1
 
-        if (self.episode_timestep >= self.t_end*self.control_freq):
+        if (self.episode_timestep + 1 >= self.t_end*self.control_freq):
             done = True
             self.env_reset_flag = True
             if self.keep_history:
@@ -516,6 +560,7 @@ class Quad(gym.Env):
             self.t = np.reshape(self.history.sol_t, -1)
 
         self.dynamics_state = next_state
+        self.prev_u_normalized = action_normalized
 
         if np.abs(self.dynamics_state[1]) > (self.high[1]/2):
             self.env_reset_flag = True
@@ -524,24 +569,7 @@ class Quad(gym.Env):
         if np.abs(self.dynamics_state[5]) > (self.high[5]/2):
             self.env_reset_flag = True
 
-        state_ = self.reference_state - next_obs
-
-        while state_[0] > np.pi:
-            state_[0] -= 2*np.pi
-        while state_[0] < -np.pi:
-            state_[0] += 2*np.pi
-
-        while state_[2] > np.pi:
-            state_[2] -= 2*np.pi
-        while state_[2] < -np.pi:
-            state_[2] += 2*np.pi
-
-        while state_[4] > np.pi:
-            state_[4] -= 2*np.pi
-        while state_[4] < -np.pi:
-            state_[4] += 2*np.pi
-
-        self.state = np.append(state_, next_obs)
+        self.state = np.append(current_reference_diff, next_obs)
         self.current_timestep += 1
         self.episode_timestep += 1
         info = {"episode": None}
@@ -557,10 +585,14 @@ class Quad(gym.Env):
             self.dynamics_state[[1, 3, 5]] = \
                 self.initial_dynamics_state[[1, 3, 5]]
             self.env_reset_flag = False
+            if self.env_hard_reset_flag:
+                self.dynamics_state[[0, 2, 4]] = \
+                    self.initial_dynamics_state[[0, 2, 4]]
+                self.env_hard_reset_flag = False
 
         # Generate a random reference(in radians)
         self.reference_state = self.rnd_state.uniform(
-            low=-np.pi, high=np.pi, size=self.dynamics_len)
+            low=-random_ref_mean, high=random_ref_mean, size=self.dynamics_len)
 
         self.reference_state[[1, 3, 5]] = 0.0
 

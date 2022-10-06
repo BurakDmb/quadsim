@@ -27,23 +27,23 @@ class TestEnvironments(unittest.TestCase):
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
-                return np.array([0.005, 0, 0])
+                return np.array([0.001, 0, 0])
 
         class DummyController2:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0.005, 0])
+                return np.array([0, 0.001, 0])
 
         class DummyController3:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0, 0.005])
+                return np.array([0, 0, 0.001])
 
         class DummyController4:
             def predict(self, state_error, deterministic=True):
-                return np.array([0.005, 0.005, 0.005])
+                return np.array([0.001, 0.001, 0.001])
 
-        control_freq = 50
+        control_freq = 250
         t_end = 5
-        num_episode = 5
+        num_episode = 1
 
         controller1 = DummyController1()
 
@@ -138,23 +138,23 @@ class TestEnvironments(unittest.TestCase):
 
         class DummyController1:
             def predict(self, state_error, deterministic=True):
-                return np.array([0.005, 0, 0])
+                return np.array([0.001, 0, 0])
 
         class DummyController2:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0.005, 0])
+                return np.array([0, 0.001, 0])
 
         class DummyController3:
             def predict(self, state_error, deterministic=True):
-                return np.array([0, 0, 0.005])
+                return np.array([0, 0, 0.001])
 
         class DummyController4:
             def predict(self, state_error, deterministic=True):
-                return np.array([0.005, 0.005, 0.005])
+                return np.array([0.001, 0.001, 0.001])
 
-        control_freq = 50
+        control_freq = 250
         t_end = 5
-        num_episode = 5
+        num_episode = 1
 
         controller1 = DummyController1()
         env1 = Quad(

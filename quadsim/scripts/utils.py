@@ -133,7 +133,7 @@ def createEnvs(t_end, simulation_freq,
         custom_u_high=custom_u_high,
         set_constant_reference=True,
         constant_reference=constant_reference,
-        eval_env=eval_env)
+        eval_enabled=eval_env)
     # Linear stochastic quadcopter
     env2 = Quad(
         is_linear=True, is_stochastic=True,
@@ -145,7 +145,7 @@ def createEnvs(t_end, simulation_freq,
         custom_u_high=custom_u_high,
         set_constant_reference=True,
         constant_reference=constant_reference,
-        eval_env=eval_env)
+        eval_enabled=eval_env)
     # Nonlinear deterministic quadcopter
     env3 = Quad(
         is_linear=False, is_stochastic=False,
@@ -157,7 +157,7 @@ def createEnvs(t_end, simulation_freq,
         custom_u_high=custom_u_high,
         set_constant_reference=True,
         constant_reference=constant_reference,
-        eval_env=eval_env)
+        eval_enabled=eval_env)
     # Nonlinear stochastic quadcopter
     env4 = Quad(
         is_linear=False, is_stochastic=True,
@@ -169,13 +169,13 @@ def createEnvs(t_end, simulation_freq,
         custom_u_high=custom_u_high,
         set_constant_reference=True,
         constant_reference=constant_reference,
-        eval_env=eval_env)
+        eval_enabled=eval_env)
     return env1, env2, env3, env4
 
 
 def test_controller(controller, t_end, plot=False, save_plot=False,
                     constant_reference=None):
-    control_freq = 50
+    control_freq = 250
     simulation_freq = 250
     t_end = 5
 

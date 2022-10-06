@@ -255,7 +255,7 @@ The angle states are also mapped between [-pi, pi).
    Quad(
       is_linear=True, is_stochastic=False,
       t_start=0, t_end=3, simulation_freq=250,
-      control_freq=50,
+      control_freq=250,
       dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
       noise_w_mean=0, noise_w_variance=0.01,
       noise_v_mean=0, noise_v_variance=0.01,

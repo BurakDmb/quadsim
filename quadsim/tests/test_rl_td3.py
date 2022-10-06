@@ -18,7 +18,7 @@ def test_td3(plot=False, save_plot=False, loadmodel=False):
             is_linear=True, is_stochastic=False,
             t_end=t_end,
             simulation_freq=250,
-            control_freq=50,
+            control_freq=250,
             keep_history=False)
         model = TD3('MlpPolicy', env, verbose=0,
                     device='cuda:0')

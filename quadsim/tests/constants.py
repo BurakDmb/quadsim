@@ -1,6 +1,6 @@
 
 n_horizon = 20
-control_freq = 50
+control_freq = 250
 simulation_freq = 250
 t_end = 5
 

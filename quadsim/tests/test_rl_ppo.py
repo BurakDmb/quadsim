@@ -22,7 +22,7 @@ def test_ppo(plot=False, save_plot=False, loadmodel=False):
             is_linear=True, is_stochastic=False,
             t_end=t_end,
             simulation_freq=250,
-            control_freq=50,
+            control_freq=250,
             keep_history=False)
         model = PPO('MlpPolicy', env, verbose=1, device='cuda:0')
         model.learn(total_timesteps=100_000)
