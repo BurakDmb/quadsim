@@ -204,7 +204,8 @@ class Quad(gym.Env):
             'use_casadi', True)
         set_eval_constant_reference = kwargs.get(
             'set_eval_constant_reference', True)
-        self.env_id = kwargs.get('env_id', 0)
+        self.env_id = kwargs.get(
+            'env_id', 0)
 
         super(Quad, self).__init__()
         self.Ixx = Ixx
@@ -393,6 +394,11 @@ class Quad(gym.Env):
 
     # Actions space is defined in self.action_space.
     def step(self, action):
+        if action is None:
+            reward = -1
+            info = {"episode": None}
+            done = True
+            return self.state, reward, done, info
 
         if self.is_stochastic:
             # Randomly generating process and measurement noise
@@ -654,6 +660,17 @@ class Quad(gym.Env):
         self.sym_wk = self.sym_wk.deserialize()
         self.sym_x = self.sym_x.deserialize()
         self.sym_xdot = self.sym_xdot.deserialize()
+
+    def reset_history_on_reset(self):
+        if self.keep_history:
+            self.history = History(self.__class__.__name__)
+            self.history.sol_x = np.array([])
+            self.history.sol_t = np.array([])
+            self.history.sol_ref = np.array([])
+            self.history.sol_reward = np.array([])
+            self.history.sol_actions = np.array([])
+            # self.history.env_name = self.__class__.__name__
+            self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
 
 
 class RLWrapper(gym.Env):
