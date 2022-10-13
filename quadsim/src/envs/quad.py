@@ -30,8 +30,7 @@ w_min = np.rint(np.sqrt((m * g)/(4*b)))
 u1_max = u2_max = d*b*((w_max**2)-(w_min**2))
 u3_max = k*2*((w_max**2)-(w_min**2))
 u_max_scale = 0.5
-u_min = 0.05
-
+u_min = 0.00
 A = np.array([[0, 1, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0],
               [0, 0, 0, 1, 0, 0],
