@@ -80,37 +80,37 @@ def calculateControllerMetrics(env):
 
 def simulate_envs(controller, env1, env2, env3, env4, num_episode):
     for epi in range(num_episode):
-        obs = env1.reset()
+        obs, info = env1.reset()
         done = False
         while not done:
             action = controller.predict(obs, deterministic=True)
             if type(action) is tuple:
                 action = action[0]
-            obs, reward, done, _ = env1.step(action)
+            obs, reward, done, _, _ = env1.step(action)
 
-        obs = env2.reset()
+        obs, info = env2.reset()
         done = False
         while not done:
             action = controller.predict(obs, deterministic=True)
             if type(action) is tuple:
                 action = action[0]
-            obs, reward, done, _ = env2.step(action)
+            obs, reward, done, _, _ = env2.step(action)
 
-        obs = env3.reset()
+        obs, info = env3.reset()
         done = False
         while not done:
             action = controller.predict(obs, deterministic=True)
             if type(action) is tuple:
                 action = action[0]
-            obs, reward, done, _ = env3.step(action)
+            obs, reward, done, _, _ = env3.step(action)
 
-        obs = env4.reset()
+        obs, info = env4.reset()
         done = False
         while not done:
             action = controller.predict(obs, deterministic=True)
             if type(action) is tuple:
                 action = action[0]
-            obs, reward, done, _ = env4.step(action)
+            obs, reward, done, _,  _ = env4.step(action)
 
 
 def createEnvs(t_end, simulation_freq,
@@ -123,60 +123,79 @@ def createEnvs(t_end, simulation_freq,
                eval_env=True):
 
     # Linear deterministic quadcopter
-    env1 = Quad(
-        is_linear=True, is_stochastic=False,
-        t_end=t_end,
-        simulation_freq=simulation_freq,
-        control_freq=control_freq, random_state_seed=0,
-        dynamics_state=dynamics_state,
-        set_custom_u_limit=set_custom_u_limit,
-        custom_u_high=custom_u_high,
-        set_constant_reference=True,
-        constant_reference=constant_reference,
-        eval_enabled=eval_env)
+    env_config1 = {
+        'is_linear': True,
+        'is_stochastic': False,
+        't_end': t_end,
+        'simulation_freq': simulation_freq,
+        'control_freq': control_freq,
+        'random_state_seed': 0,
+        'dynamics_state': dynamics_state,
+        'set_custom_u_limit': set_custom_u_limit,
+        'custom_u_high': custom_u_high,
+        'set_constant_reference': True,
+        'constant_reference': constant_reference,
+        'eval_enabled': eval_env
+    }
+    env1 = Quad(env_config1)
+
     # Linear stochastic quadcopter
-    env2 = Quad(
-        is_linear=True, is_stochastic=True,
-        t_end=t_end,
-        simulation_freq=simulation_freq,
-        control_freq=control_freq, random_state_seed=0,
-        dynamics_state=dynamics_state,
-        set_custom_u_limit=set_custom_u_limit,
-        custom_u_high=custom_u_high,
-        set_constant_reference=True,
-        constant_reference=constant_reference,
-        eval_enabled=eval_env)
+    env_config2 = {
+        'is_linear': True,
+        'is_stochastic': True,
+        't_end': t_end,
+        'simulation_freq': simulation_freq,
+        'control_freq': control_freq,
+        'random_state_seed': 0,
+        'dynamics_state': dynamics_state,
+        'set_custom_u_limit': set_custom_u_limit,
+        'custom_u_high': custom_u_high,
+        'set_constant_reference': True,
+        'constant_reference': constant_reference,
+        'eval_enabled': eval_env
+    }
+    env2 = Quad(env_config2)
+
     # Nonlinear deterministic quadcopter
-    env3 = Quad(
-        is_linear=False, is_stochastic=False,
-        t_end=t_end,
-        simulation_freq=simulation_freq,
-        control_freq=control_freq, random_state_seed=0,
-        dynamics_state=dynamics_state,
-        set_custom_u_limit=set_custom_u_limit,
-        custom_u_high=custom_u_high,
-        set_constant_reference=True,
-        constant_reference=constant_reference,
-        eval_enabled=eval_env)
+    env_config3 = {
+        'is_linear': False,
+        'is_stochastic': False,
+        't_end': t_end,
+        'simulation_freq': simulation_freq,
+        'control_freq': control_freq,
+        'random_state_seed': 0,
+        'dynamics_state': dynamics_state,
+        'set_custom_u_limit': set_custom_u_limit,
+        'custom_u_high': custom_u_high,
+        'set_constant_reference': True,
+        'constant_reference': constant_reference,
+        'eval_enabled': eval_env
+    }
+    env3 = Quad(env_config3)
+
     # Nonlinear stochastic quadcopter
-    env4 = Quad(
-        is_linear=False, is_stochastic=True,
-        t_end=t_end,
-        simulation_freq=simulation_freq,
-        control_freq=control_freq, random_state_seed=0,
-        dynamics_state=dynamics_state,
-        set_custom_u_limit=set_custom_u_limit,
-        custom_u_high=custom_u_high,
-        set_constant_reference=True,
-        constant_reference=constant_reference,
-        eval_enabled=eval_env)
+    env_config4 = {
+        'is_linear': False,
+        'is_stochastic': True,
+        't_end': t_end,
+        'simulation_freq': simulation_freq,
+        'control_freq': control_freq,
+        'random_state_seed': 0,
+        'dynamics_state': dynamics_state,
+        'set_custom_u_limit': set_custom_u_limit,
+        'custom_u_high': custom_u_high,
+        'set_constant_reference': True,
+        'constant_reference': constant_reference,
+        'eval_enabled': eval_env
+    }
+    env4 = Quad(env_config4)
     return env1, env2, env3, env4
 
 
 def test_controller(controller, t_end, plot=False, save_plot=False,
                     constant_reference=None):
-    control_freq = 250
-    simulation_freq = 250
+    control_freq = 200
+    simulation_freq = 200
     t_end = 5
 
     if constant_reference is None:

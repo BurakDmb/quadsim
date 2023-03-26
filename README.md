@@ -30,14 +30,16 @@ Bibtex:
 ## Installation
 
 ### Install Dependencies
-Tested on Ubuntu 20.04
+Ray Framework: Tested on Ubuntu 20.04 & Python 3.8
 ```
-conda create -n quadsim python=3.8 -y
-conda activate quadsim
-sudo apt install cmake
-sudo apt install gfortran
-sudo apt install libopenblas-dev
+pip install -U --no-cache-dir ray[all]==2.3.0 scikit-learn profilehooks progressbar \
+    matplotlib tensorboard plotly flake8 tqdm minigrid tensorboard-reducer \
+    torchinfo pyarrow natsort gymnasium[other] do-mpc pylint multiprocess\
+    tensorboard pysindy git+https://github.com/markwmuller/controlpy@0.1.1 --ignore-installed
+```
 
+Stable Baselines3 (Deprecated): Needs testing with recent versions.
+```
 conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge -y
 pip install git+https://github.com/carlosluis/stable-baselines3@fix_tests
 pip install git+https://github.com/Stable-Baselines-Team/stable-baselines3-contrib
@@ -157,7 +159,7 @@ Where the state vector x and the input vector u is defined like this:
 
 * In the scipy library, solve_ivp function with RK45 method(Explicit Runge-Kutta method of order 5(4)) has been used.
 
-* Within the solver parameters, this simulation aimed to have 250Hz simulation step frequency.
+* Within the solver parameters, this simulation aimed to have 200Hz simulation step frequency.
 
 Ref: <https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html#scipy-integrate-solve-ivp>
 
@@ -252,25 +254,31 @@ The angle states are also mapped between [-pi, pi).
    The signatures of the environments are given as follow:
 
    ```python
-   Quad(
-      is_linear=True, is_stochastic=False,
-      t_start=0, t_end=3, simulation_freq=250,
-      control_freq=250,
-      dynamics_state=np.array([0, 0, 0, 0, 0, 0]),
-      noise_w_mean=0, noise_w_variance=0.01,
-      noise_v_mean=0, noise_v_variance=0.01,
-      keep_history=True,
-      random_state_seed=0,
-      random_noise_seed_wk=0,
-      random_noise_seed_vk=0,
-      set_constant_reference=False,
-      constant_reference=np.array([1, 0, 1, 0, 1, 0]),
-      set_custom_u_limit=False,
-      custom_u_high=np.array([1, 1, 1]),
-      checkForSoftLimits=False,
-      eval_env=False,
-      use_casadi=True):
-
+   env_config = {
+      'is_linear': True,
+      'is_stochastic': False,
+      't_start': 0,
+      't_end': 3,
+      'simulation_freq': 200,
+      'control_freq': 200,
+      'dynamics_state': np.array([0, 0, 0, 0, 0, 0]),
+      'noise_w_mean': 0,
+      'noise_w_variance': 0.01,
+      'noise_v_mean': 0,
+      'noise_v_variance': 0.01,
+      'keep_history': True,
+      'random_state_seed': 0,
+      'random_noise_seed_wk': 0,
+      'random_noise_seed_vk': 0,
+      'set_constant_reference': False,
+      'constant_reference': np.array([1, 0, 1, 0, 1, 0]),
+      'set_custom_u_limit': False,
+      'custom_u_high': np.array([1, 1, 1]),
+      'checkForSoftLimits': False,
+      'eval_env': False,
+      'use_casadi': True
+   }
+   env = Quad(env_config)
    ```
 
 

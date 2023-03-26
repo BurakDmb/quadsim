@@ -157,6 +157,7 @@ class Linear_MPC:
         self.mpc.reset_history()
 
     def predict(self, error, deterministic=True):
-        u0 = -self.mpc.make_step(error)
+        error_ = error[0:6]
+        u0 = -self.mpc.make_step(error_)
         self.x0 = self.simulator.make_step(u0)
         return u0.reshape((3,))

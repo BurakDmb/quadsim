@@ -1,7 +1,7 @@
 
 n_horizon = 20
-control_freq = 250
-simulation_freq = 250
+control_freq = 200
+simulation_freq = 200
 t_end = 5
 
 # PID parameters

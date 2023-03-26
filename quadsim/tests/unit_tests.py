@@ -41,42 +41,53 @@ class TestEnvironments(unittest.TestCase):
             def predict(self, state_error, deterministic=True):
                 return np.array([0.001, 0.001, 0.001])
 
-        control_freq = 250
+        control_freq = 200
         t_end = 5
         num_episode = 1
 
         controller1 = DummyController1()
-
-        env1 = Quad(
-            is_linear=True, is_stochastic=False,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config1 = {
+            'is_linear': True,
+            'is_stochastic': False,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env1 = Quad(env_config1)
 
         controller2 = DummyController2()
-        env2 = Quad(
-            is_linear=True, is_stochastic=False,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config2 = {
+            'is_linear': True,
+            'is_stochastic': False,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env2 = Quad(env_config2)
 
         controller3 = DummyController3()
-        env3 = Quad(
-            is_linear=True, is_stochastic=False,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config3 = {
+            'is_linear': True,
+            'is_stochastic': False,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env3 = Quad(env_config3)
 
         controller4 = DummyController4()
-        env4 = Quad(
-            is_linear=True, is_stochastic=False,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config4 = {
+            'is_linear': True,
+            'is_stochastic': False,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env4 = Quad(env_config4)
 
         q1 = Queue()
         q2 = Queue()
@@ -152,38 +163,54 @@ class TestEnvironments(unittest.TestCase):
             def predict(self, state_error, deterministic=True):
                 return np.array([0.001, 0.001, 0.001])
 
-        control_freq = 250
+        control_freq = 200
         t_end = 5
         num_episode = 1
 
         controller1 = DummyController1()
-        env1 = Quad(
-            is_linear=True, is_stochastic=True,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config1 = {
+            'is_linear': True,
+            'is_stochastic': True,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env1 = Quad(env_config1)
+
         controller2 = DummyController2()
-        env2 = Quad(
-            is_linear=True, is_stochastic=True,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config2 = {
+            'is_linear': True,
+            'is_stochastic': True,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env2 = Quad(env_config2)
+
         controller3 = DummyController3()
-        env3 = Quad(
-            is_linear=True, is_stochastic=True,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config3 = {
+            'is_linear': True,
+            'is_stochastic': True,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env3 = Quad(env_config3)
+
         controller4 = DummyController4()
-        env4 = Quad(
-            is_linear=True, is_stochastic=True,
-            t_end=t_end,
-            simulation_freq=250,
-            control_freq=control_freq,
-            keep_history=True)
+        env_config4 = {
+            'is_linear': True,
+            'is_stochastic': True,
+            't_end': t_end,
+            'simulation_freq': 200,
+            'control_freq': control_freq,
+            'keep_history': True
+        }
+        env4 = Quad(env_config4)
+
         q1 = Queue()
         q2 = Queue()
         q3 = Queue()

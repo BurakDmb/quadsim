@@ -1,15 +1,13 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 from scipy.integrate import solve_ivp
 from quadsim.src.envs.util_history import History
 import casadi
 
-Ixx = 0.0213  # kgm^2
-Iyy = 0.02217  # kgm^2
-Izz = 0.0282  # kgm^2
-
-
+initializate_inertia_values = np.array(
+    [0.0213, 0.02217, 0.0282],  # kgm^2
+    dtype=np.float32)
 m = 1.587  # kg
 g = 9.81  # ms^-2
 mg = m*g
@@ -29,72 +27,48 @@ w_min = np.rint(np.sqrt((m * g)/(4*b)))
 
 u1_max = u2_max = d*b*((w_max**2)-(w_min**2))
 u3_max = k*2*((w_max**2)-(w_min**2))
-u_max_scale = 0.5
 u_min = 0.05
 
-random_ref_mean = np.pi/4
-
-A = np.array([[0, 1, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 1, 0, 0],
-              [0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 1],
-              [0, 0, 0, 0, 0, 0]])
-
-B = np.array([[0,       0,                          0],
-              [(1.0/Ixx)*(u1_max*u_max_scale), 0,   0],
-              [0,       0,                          0],
-              [0, (1.0/Iyy)*(u2_max*u_max_scale),   0],
-              [0,       0,                          0],
-              [0,       0,              (1.0/Izz)*(u3_max*u_max_scale)]])
-
-C = np.eye(6)
-
-D = np.array([[0, 0, 0],
-              [0, 0, 0],
-              [0, 0, 0],
-              [0, 0, 0],
-              [0, 0, 0],
-              [0, 0, 0]])
-
-G = np.array([[1, 0, 0, 0, 0, 0],
-              [0, 1, 0, 0, 0, 0],
-              [0, 0, 1, 0, 0, 0],
-              [0, 0, 0, 1, 0, 0],
-              [0, 0, 0, 0, 1, 0],
-              [0, 0, 0, 0, 0, 1]])
-
-H = np.array([[1, 0, 0, 0, 0, 0],
-              [0, 1, 0, 0, 0, 0],
-              [0, 0, 1, 0, 0, 0],
-              [0, 0, 0, 1, 0, 0],
-              [0, 0, 0, 0, 1, 0],
-              [0, 0, 0, 0, 0, 1]])
-
-# Higher the coefficient, higher the importance and the effect.
-
-Q_coefficients = np.array([0.8, 0.2, 0.8, 0.2, 0.8, 0.2])
-R_coefficients = np.array([0.1, 0.1, 0.1])
-delta_u_coefficient = 0.5
-
+# Experimental soft limits.
 # Defining soft limits for physical life quadcopter
-# maximum angular speeds, which is 2000deg/s
+# Theoretical maximum angular speeds are 2000deg/s for the imu.
+# But for experimental soft limits, below values are used.
+
 # Below the link for the IMU used in pixhawk 2.1 cube
 # https://ardupilot.org/copter/docs/common-thecube-overview.html
 # https://invensense.tdk.com/products/motion-tracking/9-axis/mpu-9250/
 
-# Experimental soft limits.
+soft_ref_phi = 2*np.pi
+soft_ref_phidot = 2*np.pi
+soft_ref_theta = 2*np.pi
+soft_ref_thetadot = 2*np.pi
+soft_ref_psi = 2*np.pi
+soft_ref_psidot = 2*np.pi
+
+soft_phi = np.pi
 soft_phidot = 2*np.pi
+soft_theta = np.pi
 soft_thetadot = 2*np.pi
+soft_psi = np.pi
 soft_psidot = 2*np.pi
+
+random_ref_val = np.pi/6
+
+
+# Higher the coefficient, higher the importance and the effect.
+Q_coefficients = np.array([20.0, 1.125, 20.0, 1.125, 2.0, 1.125])
+R_coefficients = np.array([0.2, 0.2, 0.2])
+delta_u_coefficient = 0.0
 
 
 # Vectorized dynamics function usage:
 # y will be in shape (n,k)
 # output will be in shape (n,k)
 # each column corresponds to a single column in y.
-def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
-    # def linear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
+def linear_quad_dynamics(
+        t, x,
+        A, B, G, Ixx, Iyy, Izz,
+        u1=0, u2=0, u3=0, wk=None):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
     # u = [db*(w4*w4 - w2*w2), db*(w1*w1 - w3*w3),
@@ -117,8 +91,10 @@ def linear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
 # each column corresponds to a single column in y.
 # for quadcopter dynamics, n=6, which are
 # phidot, phidotdot, thetadot, thetadotdot, psidot, psidotdot.
-def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
-    # def nonlinear_quad_dynamics(t, x, w1s=0, w2s=0, w3s=0, w4s=0):
+def nonlinear_quad_dynamics(
+        t, x,
+        A, B, G, Ixx, Iyy, Izz,
+        u1=0, u2=0, u3=0, wk=None):
 
     # u = [db*(w4s - w2s), db*(w1s - w3s), k*(w1s + w3s - w4s - w2s)]
     u = [u1, u2, u3]
@@ -133,13 +109,13 @@ def nonlinear_quad_dynamics(t, x, u1=0, u2=0, u3=0, wk=None):
     psidot = x[5, :]
     phidotdot = (np.dot(
         (Iyy-Izz),
-        np.multiply(thetadot, psidot)) + (U[0, :])*(u1_max*u_max_scale))/Ixx
+        np.multiply(thetadot, psidot)) + (U[0, :])*(u1_max))/Ixx
     thetadotdot = (np.dot(
         (Izz-Ixx),
-        np.multiply(phidot, psidot)) + (U[1, :])*(u2_max*u_max_scale))/Iyy
+        np.multiply(phidot, psidot)) + (U[1, :])*(u2_max))/Iyy
     psidotdot = (np.dot(
         (Ixx-Iyy),
-        np.multiply(phidot, thetadot)) + (U[2, :])*(u3_max*u_max_scale))/Izz
+        np.multiply(phidot, thetadot)) + (U[2, :])*(u3_max))/Izz
 
     dxdt = np.array([x[1, :], phidotdot, x[3, :],
                     thetadotdot, x[5, :], psidotdot])
@@ -157,60 +133,67 @@ class Quad(gym.Env):
     System Output(states): X = phi, phidot, theta, thetadot, psi, psidot
     """
 
-    def __init__(self, **kwargs):
-        is_linear = kwargs.get(
+    def __init__(self, env_config):
+        is_linear = env_config.get(
             'is_linear', True)
-        is_stochastic = kwargs.get(
+        is_stochastic = env_config.get(
             'is_stochastic', False)
-        t_start = kwargs.get(
+        t_start = env_config.get(
             't_start', 0)
-        t_end = kwargs.get(
+        t_end = env_config.get(
             't_end', 3)
-        simulation_freq = kwargs.get(
-            'simulation_freq', 250)
-        control_freq = kwargs.get(
-            'control_freq', 250)
-        dynamics_state = kwargs.get(
+        simulation_freq = env_config.get(
+            'simulation_freq', 200)
+        control_freq = env_config.get(
+            'control_freq', 200)
+        dynamics_state = env_config.get(
             'dynamics_state', np.array([0., 0., 0., 0., 0., 0.]))
-        noise_w_mean = kwargs.get(
+        noise_w_mean = env_config.get(
             'noise_w_mean', 0)
-        noise_w_variance = kwargs.get(
-            'noise_w_variance', 0.05)
-        noise_v_mean = kwargs.get(
+        noise_w_variance = env_config.get(
+            'noise_w_variance', 0.02)
+        noise_v_mean = env_config.get(
             'noise_v_mean', 0)
-        noise_v_variance = kwargs.get(
-            'noise_v_variance', 0.05)
-        keep_history = kwargs.get(
+        noise_v_variance = env_config.get(
+            'noise_v_variance', 0.02)
+        keep_history = env_config.get(
             'keep_history', True)
-        random_state_seed = kwargs.get(
+        random_state_seed = env_config.get(
             'random_state_seed', 0)
-        random_noise_seed_wk = kwargs.get(
+        random_noise_seed_wk = env_config.get(
             'random_noise_seed_wk', 0)
-        random_noise_seed_vk = kwargs.get(
+        random_noise_seed_vk = env_config.get(
             'random_noise_seed_vk', 0)
-        set_constant_reference = kwargs.get(
+        set_constant_reference = env_config.get(
             'set_constant_reference', False)
-        constant_reference = kwargs.get(
+        constant_reference = env_config.get(
             'constant_reference', np.array([1., 0., 1., 0., 1., 0.]))
-        set_custom_u_limit = kwargs.get(
+        set_custom_u_limit = env_config.get(
             'set_custom_u_limit', False)
-        custom_u_high = kwargs.get(
+        custom_u_high = env_config.get(
             'custom_u_high', np.array([1., 1., 1.]))
-        checkForSoftLimits = kwargs.get(
+        checkForSoftLimits = env_config.get(
             'checkForSoftLimits', True)
-        eval_enabled = kwargs.get(
+        eval_enabled = env_config.get(
             'eval_enabled', False)
-        use_casadi = kwargs.get(
+        use_casadi = env_config.get(
             'use_casadi', True)
-        set_eval_constant_reference = kwargs.get(
+        inertia_values = env_config.get(
+            'inertia_values', initializate_inertia_values)
+        set_eval_constant_reference = env_config.get(
             'set_eval_constant_reference', True)
-        self.env_id = kwargs.get(
+        self.env_id = env_config.get(
             'env_id', 0)
+        self.d_rand_percent = env_config.get(
+            'd_rand_percent', 0.0)
+        self.random_ref_mode = env_config.get(
+            'random_ref_mode', 3)
 
         super(Quad, self).__init__()
-        self.Ixx = Ixx
-        self.Iyy = Iyy
-        self.Izz = Izz
+        self.initial_inertia_values = inertia_values
+        self.Ixx = inertia_values[0]
+        self.Iyy = inertia_values[1]
+        self.Izz = inertia_values[2]
         self.m = m
         self.g = g
         self.mg = mg
@@ -231,52 +214,56 @@ class Quad(gym.Env):
 
         self.db = db
         self.w_max = w_max
-        self.A = A
-        self.B = B
-        self.C = C
-        self.D = D
-        self.G = G
-        self.H = H
+        self.generate_dynamics()
 
         self.is_linear = is_linear
         self.solver_func = linear_quad_dynamics if is_linear else \
             nonlinear_quad_dynamics
 
-        self.u1_max = u1_max
-        self.u2_max = u2_max
-        self.u3_max = u3_max
-        self.u_max_scale = u_max_scale
+        self.current_ref_mode = self.random_ref_mode
+
         self.u_max = np.float32(np.array([u1_max, u2_max, u3_max]))
         self.u_min = u_min
 
-        self.u_max_normalized = (self.u_max / self.u_max)*self.u_max_scale
+        self.u_max_normalized = np.float32(
+            np.array([1, 1, 1], dtype=np.float32))
 
-        self.phi_max = (u1_max/Ixx)*(((t_end-t_start)**2)/2)
-        self.phidot_max = (u1_max/Ixx)*(t_end-t_start)
+        # self.phi_max = (u1_max/self.Ixx)*(((t_end-t_start)**2)/2)
+        self.phidot_max = (u1_max/self.Ixx)*(t_end-t_start)
 
-        self.theta_max = (u2_max/Iyy)*(((t_end-t_start)**2)/2)
-        self.thetadot_max = (u2_max/Iyy)*(t_end-t_start)
+        # self.theta_max = (u2_max/self.Iyy)*(((t_end-t_start)**2)/2)
+        self.thetadot_max = (u2_max/self.Iyy)*(t_end-t_start)
 
-        self.psi_max = (u3_max/Izz)*(((t_end-t_start)**2)/2)
-        self.psidot_max = (u3_max/Izz)*(t_end-t_start)
+        # self.psi_max = (u3_max/self.Izz)*(((t_end-t_start)**2)/2)
+        self.psidot_max = (u3_max/self.Izz)*(t_end-t_start)
 
         high_ = np.float32(np.array([
-            np.pi/2,
+            np.pi,
             self.phidot_max,
-            np.pi/2,
+            np.pi,
             self.thetadot_max,
             np.pi,
             self.psidot_max]))
         self.high = np.append(high_, high_)
 
+        # For the error (first 6 elements), soft high values are equal with
+        # the state limits since angles are limited with pi and angular
+        # speed reference is always zero for this env.
+        soft_ref_high_ = np.float32(np.array([
+            soft_ref_phi,
+            soft_ref_phidot,
+            soft_ref_theta,
+            soft_ref_thetadot,
+            soft_ref_psi,
+            soft_ref_psidot]))
         soft_high_ = np.float32(np.array([
-            np.pi/2,
+            soft_phi,
             soft_phidot,
-            np.pi/2,
+            soft_theta,
             soft_thetadot,
-            np.pi,
+            soft_psi,
             soft_psidot]))
-        self.soft_high = np.append(soft_high_, soft_high_)
+        self.soft_high = np.append(soft_ref_high_, soft_high_)
 
         # Quadratic Cost/Reward Matrix
         self.Q_coefficients = Q_coefficients
@@ -304,6 +291,7 @@ class Quad(gym.Env):
         self.observation_space = spaces.Box(
             low=-self.soft_high,
             high=self.soft_high)
+        self.reward_range = (-1.0, 0.0)
 
         self.t_start = t_start
         self.t_end = t_end
@@ -321,6 +309,7 @@ class Quad(gym.Env):
         self.reference_state = self.dynamics_state
         self.state = self.reference_state - self.dynamics_state
 
+        # Other initializations
         self.rnd_state = np.random.default_rng(random_state_seed)
         self.env_reset_flag = False
         self.env_hard_reset_flag = False
@@ -340,46 +329,7 @@ class Quad(gym.Env):
 
         # Casadi integrator initialization
         if self.use_casadi:
-            self.sym_x = casadi.SX.sym("x", 6)  # Differential states
-            self.sym_u = casadi.SX.sym("u", 3)  # Control
-            self.sym_wk = casadi.SX.sym("wk", 6)  # process noise
-            if self.solver_func.__name__ == 'nonlinear_quad_dynamics':
-                self.sym_xdot = casadi.vertcat(
-                    self.sym_x[1],
-                    (((Iyy-Izz) @ (self.sym_x[3]*self.sym_x[5])) +
-                        (self.sym_u[0])*(u1_max*u_max_scale)) / Ixx,
-                    self.sym_x[3],
-                    (((Izz-Ixx) @ (self.sym_x[1]*self.sym_x[5])) +
-                        (self.sym_u[1])*(u2_max*u_max_scale)) / Iyy,
-                    self.sym_x[5],
-                    (((Ixx-Iyy) @ (self.sym_x[1]*self.sym_x[3])) +
-                        (self.sym_u[2])*(u3_max*u_max_scale)) / Izz,
-                ) + G @ self.sym_wk
-            else:
-                self.sym_xdot = casadi.vertcat(
-                    self.sym_x[1],
-                    ((self.sym_u[0])*(u1_max*u_max_scale)) / Ixx,
-                    self.sym_x[3],
-                    ((self.sym_u[1])*(u2_max*u_max_scale)) / Iyy,
-                    self.sym_x[5],
-                    ((self.sym_u[2])*(u3_max*u_max_scale)) / Izz,
-                ) + G @ self.sym_wk
-
-            # Create an integrator
-            ode = {
-                'x': self.sym_x,
-                'p': casadi.vertcat(self.sym_u, self.sym_wk),
-                'ode': self.sym_xdot
-                }
-
-            opts = {
-                "tf": self.control_timestep,
-                'common_options': {'max_step_size': self.simulation_timestep},
-                # 'verbose': True
-                }
-
-            self.integrator = casadi.integrator(
-                'NL_Integrator', 'rk', ode, opts)
+            self.initialize_casadi()
 
         # History initialization
         if self.keep_history:
@@ -394,11 +344,17 @@ class Quad(gym.Env):
 
     # Actions space is defined in self.action_space.
     def step(self, action):
-        if action is None:
+        if action is None or np.isnan(action).any():
             reward = -1
             info = {"episode": None}
             done = True
             return self.state, reward, done, info
+
+        # Action masking if the reference mode is not 'all'.
+        if self.current_ref_mode != 3:
+            action_mask = np.array([0]*3)
+            action_mask[self.current_ref_mode] = 1
+            action = action * action_mask
 
         if self.is_stochastic:
             # Randomly generating process and measurement noise
@@ -452,12 +408,16 @@ class Quad(gym.Env):
             # for system of ODEs.
             # By using the max_step parameter, the simulation is ensured
             # to have minimum self.simulation_freq Hz freq.
-            sol = solve_ivp(self.solver_func, time_range,
-                            self.dynamics_state,
-                            args=(u1, u2, u3, wk),
-                            # args=(w1s, w2s, w3s, w4s),
-                            vectorized=True,
-                            max_step=self.simulation_timestep)
+            sol = solve_ivp(
+                self.solver_func, time_range,
+                self.dynamics_state,
+                args=(
+                    self.A, self.B, self.G,
+                    self.Ixx, self.Iyy, self.Izz,
+                    u1, u2, u3, wk),
+                # args=(w1s, w2s, w3s, w4s),
+                vectorized=True,
+                max_step=self.simulation_timestep)
 
             next_state = sol.y[:, -1]
             next_time = time_range[1]
@@ -472,7 +432,7 @@ class Quad(gym.Env):
 
         # Adding the measurement noise to the observation
         # Flatten is used to convert 6,1 matrix to 6, vector.
-        next_obs = next_state + np.dot(H, vk).flatten()
+        next_obs = next_state + np.dot(self.H, vk).flatten()
 
         # Mapping the observation values to -pi, pi
         next_obs[[0, 2, 4]] = ((
@@ -495,19 +455,17 @@ class Quad(gym.Env):
         while current_reference_diff[4] < -np.pi:
             current_reference_diff[4] += 2*np.pi
 
+        # Clipping the reference diff and next_obs with the env limits.
+        current_reference_diff_clipped = np.maximum(
+            np.minimum(current_reference_diff, self.soft_high[0:6]),
+            -self.soft_high[0:6])
+        next_obs_clipped = np.maximum(
+            np.minimum(next_obs, self.soft_high[6:12]),
+            -self.soft_high[6:12])
+
         ref_diff_normalized = np.zeros((self.internal_dynamics_len, ))
-        ref_diff_normalized[0] = (
-            current_reference_diff[0] / self.soft_high[0])
-        ref_diff_normalized[1] = (
-            current_reference_diff[1] / self.soft_high[1])
-        ref_diff_normalized[2] = (
-            current_reference_diff[2] / self.soft_high[2])
-        ref_diff_normalized[3] = (
-            current_reference_diff[3] / self.soft_high[3])
-        ref_diff_normalized[4] = (
-            current_reference_diff[4] / self.soft_high[4])
-        ref_diff_normalized[5] = (
-            current_reference_diff[5] / self.soft_high[5])
+        ref_diff_normalized = (
+            current_reference_diff_clipped / self.soft_high[0:6])
 
         action_normalized = action_clipped / self.u_max_normalized
 
@@ -518,18 +476,21 @@ class Quad(gym.Env):
         # entire reward/cost function, we can simply
         # normalize by dividing the sum of coefficients.
         # Reward is normalized and currently it can be in the range of [-1, 0].
-        reward = -np.sqrt((
-            ((ref_diff_normalized.T @ self.Q @ ref_diff_normalized)) +
-            (((action_normalized.T @ self.R @ action_normalized))) +
-            delta_u_coefficient * delta_u
-            ).item() / (self.Q.sum() + self.R.sum()))
+        reward = -((
+                ((ref_diff_normalized.T @ self.Q @ ref_diff_normalized)) +
+                (((action_normalized.T @ self.R @ action_normalized))) +
+                delta_u_coefficient * delta_u
+            ).item() / (self.Q.sum() + self.R.sum() + delta_u_coefficient))
 
         done = False
-        if self.checkLimitsExceed(self.checkForSoftLimits):
+        # Checking env limits
+        if self.checkEnvLimits(
+                np.append(current_reference_diff, next_obs),
+                self.soft_high):
             self.env_reset_flag = True
             self.env_hard_reset_flag = True
             done = True
-            reward = -1
+            reward = -1.0
 
         if (self.episode_timestep + 1 >= self.t_end*self.control_freq):
             done = True
@@ -542,14 +503,13 @@ class Quad(gym.Env):
                 (self.history.sol_x_wo_noise, next_state))
                 if self.history.sol_x_wo_noise.size else next_state)
 
-            self.history.sol_x = (np.column_stack((self.history.sol_x,
-                                                   next_obs))
-                                  if self.history.sol_x.size else next_obs)
-            self.history.sol_t = (
-                np.column_stack((
-                    self.history.sol_t, next_time)
-                    ) if self.history.sol_t.size else np.expand_dims(
-                        np.array(next_time), axis=0))
+            self.history.sol_x = (np.column_stack(
+                (self.history.sol_x, next_obs_clipped)
+                ) if self.history.sol_x.size else next_obs_clipped)
+            self.history.sol_t = (np.column_stack((
+                self.history.sol_t, next_time)
+                ) if self.history.sol_t.size else np.expand_dims(
+                    np.array(next_time), axis=0))
 
             self.history.sol_ref = (np.column_stack(
                 (self.history.sol_ref, self.reference_state))
@@ -568,23 +528,29 @@ class Quad(gym.Env):
         self.dynamics_state = next_state
         self.prev_u_normalized = action_normalized
 
-        if np.abs(self.dynamics_state[1]) > (self.high[1]/2):
-            self.env_reset_flag = True
-        if np.abs(self.dynamics_state[3]) > (self.high[3]/2):
-            self.env_reset_flag = True
-        if np.abs(self.dynamics_state[5]) > (self.high[5]/2):
-            self.env_reset_flag = True
-
-        self.state = np.append(current_reference_diff, next_obs)
+        self.state = np.append(
+            current_reference_diff_clipped, next_obs_clipped)
         self.current_timestep += 1
         self.episode_timestep += 1
         info = {"episode": None}
+        terminated = done
+        truncated = False
 
-        return self.state, reward, done, info
+        return self.state, reward, terminated, truncated, info
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         if self.eval_env:
             self.dynamics_state = self.initial_dynamics_state
+        else:
+            domain_rand = (
+                np.random.rand(3)*(2*self.d_rand_percent)
+                ) + (1-self.d_rand_percent)
+
+            self.Ixx = self.initial_inertia_values[0] * domain_rand[0]
+            self.Iyy = self.initial_inertia_values[1] * domain_rand[1]
+            self.Izz = self.initial_inertia_values[2] * domain_rand[2]
+
+        self.generate_dynamics()
 
         self.episode_timestep = 0
         if self.env_reset_flag:
@@ -596,14 +562,72 @@ class Quad(gym.Env):
                     self.initial_dynamics_state[[0, 2, 4]]
                 self.env_hard_reset_flag = False
 
-        # Generate a random reference(in radians)
-        self.reference_state = self.rnd_state.uniform(
-            low=-random_ref_mean, high=random_ref_mean, size=self.dynamics_len)
-
-        self.reference_state[[1, 3, 5]] = 0.0
-
         if self.set_constant_reference:
             self.reference_state = self.constant_reference
+        else:
+            # Generate a random reference(in radians)
+            # Select a random axis (roll, pitch, yaw)
+            # Random_ref_mode: 0-Roll, 1-Pitch, 2-Yaw, 3-Random
+            if self.random_ref_mode == 3:
+                random_axis = np.random.choice([0, 1, 2])
+                self.current_ref_mode = random_axis
+
+            random_axis = self.current_ref_mode * 2
+
+            random_state = self.rnd_state.uniform(
+                low=-random_ref_val, high=random_ref_val,
+                size=self.dynamics_len)
+            self.reference_state[[0, 1, 2, 3, 4, 5]] = 0.0
+            # Set the generated axis to a random value.
+            self.reference_state[[random_axis]] = random_state[random_axis]
+
+        if self.current_ref_mode == 0:
+            self.Q[0, 0] = self.Q_coefficients[0]
+            self.Q[1, 1] = self.Q_coefficients[1]
+            self.Q[2, 2] = 0.0
+            self.Q[3, 3] = 0.0
+            self.Q[4, 4] = 0.0
+            self.Q[5, 5] = 0.0
+
+            self.R[0, 0] = self.R_coefficients[0]
+            self.R[1, 1] = 0.0
+            self.R[2, 2] = 0.0
+
+        if self.current_ref_mode == 1:
+            self.Q[0, 0] = 0.0
+            self.Q[1, 1] = 0.0
+            self.Q[2, 2] = self.Q_coefficients[2]
+            self.Q[3, 3] = self.Q_coefficients[3]
+            self.Q[4, 4] = 0.0
+            self.Q[5, 5] = 0.0
+
+            self.R[0, 0] = 0.0
+            self.R[1, 1] = self.R_coefficients[1]
+            self.R[2, 2] = 0.0
+
+        if self.current_ref_mode == 2:
+            self.Q[0, 0] = 0.0
+            self.Q[1, 1] = 0.0
+            self.Q[2, 2] = 0.0
+            self.Q[3, 3] = 0.0
+            self.Q[4, 4] = self.Q_coefficients[4]
+            self.Q[5, 5] = self.Q_coefficients[5]
+
+            self.R[0, 0] = 0.0
+            self.R[1, 1] = 0.0
+            self.R[2, 2] = self.R_coefficients[2]
+
+        if self.current_ref_mode == 3:
+            self.Q[0, 0] = self.Q_coefficients[0]
+            self.Q[1, 1] = self.Q_coefficients[1]
+            self.Q[2, 2] = self.Q_coefficients[2]
+            self.Q[3, 3] = self.Q_coefficients[3]
+            self.Q[4, 4] = self.Q_coefficients[4]
+            self.Q[5, 5] = self.Q_coefficients[5]
+
+            self.R[0, 0] = self.R_coefficients[0]
+            self.R[1, 1] = self.R_coefficients[1]
+            self.R[2, 2] = self.R_coefficients[2]
 
         state_ = self.reference_state - self.dynamics_state
         if state_[0] > np.pi:
@@ -622,21 +646,25 @@ class Quad(gym.Env):
             state_[4] += 2*np.pi
 
         self.state = np.append(state_, self.dynamics_state)
-        return self.state
+        info = {}
+        return self.state, info
+
+    def checkEnvLimits(self, state_arr, limits_arr):
+        if (np.any(np.greater_equal(state_arr,
+                                    limits_arr))
+            or np.any(np.less_equal(state_arr,
+                                    -limits_arr))):
+            return True
+        return False
 
     def checkLimitsExceed(self, checkForSoftLimits=False):
-        if checkForSoftLimits:
-            if (np.any(np.greater_equal(self.dynamics_state,
-                                        self.soft_high[6:12]))
-                or np.any(np.less_equal(self.dynamics_state,
-                                        -self.soft_high[6:12]))):
-                return True
-        else:
-            if (np.any(np.greater_equal(self.dynamics_state,
-                                        self.high[6:12]))
-                or np.any(np.less_equal(self.dynamics_state,
-                                        -self.high[6:12]))):
-                return True
+        # Only soft limits are controlled since the reward and the physical
+        # system ranges are configured according to the soft high range.
+        if (np.any(np.greater_equal(self.dynamics_state,
+                                    self.soft_high[0:6]))
+            or np.any(np.less_equal(self.dynamics_state,
+                                    -self.soft_high[0:6]))):
+            return True
         return False
 
     def motor_mixing(self, u1, u2, u3, target_thrust=mg):
@@ -646,6 +674,48 @@ class Quad(gym.Env):
         w4_square = (target_thrust/(4*b)) - (u3 / (4*k)) + (u1 / (2*db))
         W = np.array([w1_square, w2_square, w3_square, w4_square])
         return W
+
+    def initialize_casadi(self):
+        self.sym_x = casadi.SX.sym("x", 6)  # Differential states
+        self.sym_u = casadi.SX.sym("u", 3)  # Control
+        self.sym_wk = casadi.SX.sym("wk", 6)  # process noise
+        if self.solver_func.__name__ == 'nonlinear_quad_dynamics':
+            self.sym_xdot = casadi.vertcat(
+                self.sym_x[1],
+                (((self.Iyy-self.Izz) @ (self.sym_x[3]*self.sym_x[5])) +
+                    (self.sym_u[0])*(u1_max)) / self.Ixx,
+                self.sym_x[3],
+                (((self.Izz-self.Ixx) @ (self.sym_x[1]*self.sym_x[5])) +
+                    (self.sym_u[1])*(u2_max)) / self.Iyy,
+                self.sym_x[5],
+                (((self.Ixx-self.Iyy) @ (self.sym_x[1]*self.sym_x[3])) +
+                    (self.sym_u[2])*(u3_max)) / self.Izz,
+            ) + self.G @ self.sym_wk
+        else:
+            self.sym_xdot = casadi.vertcat(
+                self.sym_x[1],
+                ((self.sym_u[0])*(u1_max)) / self.Ixx,
+                self.sym_x[3],
+                ((self.sym_u[1])*(u2_max)) / self.Iyy,
+                self.sym_x[5],
+                ((self.sym_u[2])*(u3_max)) / self.Izz,
+            ) + self.G @ self.sym_wk
+
+        # Create an integrator
+        ode = {
+            'x': self.sym_x,
+            'p': casadi.vertcat(self.sym_u, self.sym_wk),
+            'ode': self.sym_xdot
+            }
+
+        opts = {
+            "tf": self.control_timestep,
+            'common_options': {'max_step_size': self.simulation_timestep},
+            # 'verbose': True
+            }
+
+        self.integrator = casadi.integrator(
+            'NL_Integrator', 'rk', ode, opts)
 
     def serialize_casadi(self):
         self.integrator = self.integrator.serialize()
@@ -672,6 +742,54 @@ class Quad(gym.Env):
             # self.history.env_name = self.__class__.__name__
             self.history.sol_x_wo_noise = np.copy(self.history.sol_x)
 
+    def generate_dynamics(self):
+
+        self.A = np.array([
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0]],
+            dtype=np.float32)
+
+        self.B = np.array([
+            [0,       0,                          0],
+            [(1.0/self.Ixx)*(u1_max), 0,   0],
+            [0,       0,                          0],
+            [0, (1.0/self.Iyy)*(u2_max),   0],
+            [0,       0,                          0],
+            [0,       0,              (1.0/self.Izz)*(u3_max)]],
+            dtype=np.float32)
+
+        self.C = np.eye(6)
+
+        self.D = np.array([
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0]], dtype=np.float32)
+
+        self.G = np.array([
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1]],
+            dtype=np.float32)
+
+        self.H = np.array([
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1]],
+            dtype=np.float32)
+
 
 class RLWrapper(gym.Env):
     def __init__(self, env):
@@ -690,9 +808,9 @@ class RLWrapper(gym.Env):
             self.history = self.env.history
 
     def step(self, action):
-        state, reward, done, info = self.env.step(action)
+        state, reward, terminated, truncated, info = self.env.step(action)
         state = state[0:6]
-        return state, reward, done, info
+        return state, reward, terminated, truncated, info
 
     def reset(self):
         state = self.env.reset()

@@ -1,5 +1,5 @@
+import controlpy
 import numpy as np
-import control
 
 # LQG algorithm, (LQR with kalman filter for
 # linear-quadratic-gaussian environments).
@@ -28,7 +28,8 @@ class LQG:
         # L is the lqr gain
         # S is the solution of the algebraic riccati eqn.
         # E is the eigenvalues of the system
-        self.L, self.S, self.E = control.lqr(self.A, self.B, self.M, self.P)
+        self.L, _, _ = controlpy.synthesis.controller_lqr(
+            self.A, self.B, self.env.Q, self.env.R)
 
         self.C = self.env.C
         self.G = self.env.G

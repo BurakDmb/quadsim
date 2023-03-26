@@ -1,5 +1,5 @@
 import numpy as np
-import control
+import controlpy
 
 
 class LQR:
@@ -10,16 +10,17 @@ class LQR:
         # For the lqr-lqg notation, M and P are used for cost matrix
         # definitions instead of Q and R.
         # Q and R corresponds to the wk and vk covariance matrices.
-        M = self.env.Q
-        P = self.env.R
+        Q = self.env.Q
+        R = self.env.R
 
         # L is the lqr gain
         # S is the solution of the algebraic riccati eqn.
         # E is the eigenvalues of the system
-        self.L, self.S, self.E = control.lqr(A, B, M, P)
+        self.L, _, _ = controlpy.synthesis.controller_lqr(A, B, Q, R)
 
     # State is the 6 dimensional vector(6,) which holds the
     # reference minus the current state information
     def predict(self, error_state, deterministic=True):
-        U = np.dot(self.L, error_state)
+        error = error_state[0:6]
+        U = np.dot(self.L, error)
         return U

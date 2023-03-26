@@ -17,8 +17,8 @@ def test_a2c(plot=False, save_plot=False, loadmodel=False):
         env = Quad(
             is_linear=True, is_stochastic=False,
             t_end=t_end,
-            simulation_freq=250,
-            control_freq=250,
+            simulation_freq=200,
+            control_freq=200,
             keep_history=False)
         model = A2C('MlpPolicy', env, verbose=0,
                     device='cuda:0')

@@ -12,7 +12,7 @@ def test_all_environments_open_loop(plot=False, save_plot=False):
         # State is the 6 dimensional vector(6,) which holds the
         # reference minus the current state information
         def predict(self, state_error, deterministic=True):
-            return np.array([0, 0, 0])
+            return np.array([0.001, 0, 0])
 
     print("*** Function: ", sys._getframe().f_code.co_name, "***")
     t_end = 5

@@ -21,8 +21,8 @@ def test_ppo(plot=False, save_plot=False, loadmodel=False):
         env = Quad(
             is_linear=True, is_stochastic=False,
             t_end=t_end,
-            simulation_freq=250,
-            control_freq=250,
+            simulation_freq=200,
+            control_freq=200,
             keep_history=False)
         model = PPO('MlpPolicy', env, verbose=1, device='cuda:0')
         model.learn(total_timesteps=100_000)
