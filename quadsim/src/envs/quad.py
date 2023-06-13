@@ -219,6 +219,15 @@ class Quad(gym.Env):
 
         self.checkForSoftLimits = checkForSoftLimits
 
+        self.current_timestep = 0
+        self.episode_timestep = 0
+        self.current_time = 0
+        self.initial_dynamics_state = dynamics_state
+        self.dynamics_state = self.initial_dynamics_state
+
+        self.reference_state = self.dynamics_state
+        self.state = self.reference_state - self.dynamics_state
+
         self.db = db
         self.w_max = w_max
         self.generate_dynamics()
@@ -306,15 +315,6 @@ class Quad(gym.Env):
         self.simulation_timestep = 1/simulation_freq
         self.control_freq = control_freq
         self.control_timestep = 1/control_freq
-
-        self.current_timestep = 0
-        self.episode_timestep = 0
-        self.current_time = 0
-        self.initial_dynamics_state = dynamics_state
-        self.dynamics_state = self.initial_dynamics_state
-
-        self.reference_state = self.dynamics_state
-        self.state = self.reference_state - self.dynamics_state
 
         # Other initializations
         self.rnd_state = np.random.default_rng(random_state_seed)
